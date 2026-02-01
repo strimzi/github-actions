@@ -1,0 +1,22 @@
+name: "Install Helm"
+description: "Install Helm by our script"
+
+inputs:
+  helmVersion:
+    description: "Helm version used"
+    required: false
+    default: "v3.20.0"
+  helmUnitTestVersion:
+    description: "Helm UnitTest version used"
+    required: false
+    default: "v1.0.3"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install helm
+      shell: bash
+      run: "${{ github.action_path }}/setup-helm.sh"
+      env:
+        TEST_HELM3_VERSION: ${{ inputs.helmVersion }}
+        TEST_HELM_UNITTEST_VERSION: ${{ inputs.helmUnitTestVersion }}

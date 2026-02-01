@@ -1,0 +1,106 @@
+name: "Build Java Binaries"
+description: "Build and test Java binaries using standard Makefile targets"
+
+inputs:
+  javaVersion:
+    description: "Java version"
+    required: false
+    default: "17"
+  mainBuild:
+    description: "Whether this is the main build (true) or a test build (false)"
+    required: false
+    default: "true"
+  artifactName:
+    description: "Name for the uploaded artifact"
+    required: false
+    default: "binaries.tar"
+  runnerArch:
+    description: "Runner architecture (amd64, arm64)"
+    required: false
+    default: "amd64"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Java and Maven
+      uses: ./.github/actions/dependencies/setup-java
+      with:
+        javaVersion: ${{ inputs.javaVersion }}
+
+    - name: Restore Maven cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Install yq
+      uses: ./.github/actions/dependencies/install-yq
+      with:
+        architecture: ${{ inputs.runnerArch }}
+
+    - name: Install Shellcheck
+      uses: ./.github/actions/dependencies/install-shellcheck
+      with:
+        architecture: ${{ inputs.runnerArch }}
+
+    - name: Install Helm
+      uses: ./.github/actions/dependencies/install-helm
+
+    - name: Build binaries
+      shell: bash
+      run: make java_install
+      env:
+        MVN_ARGS: '-B -DskipTests'
+
+    - name: Run SpotBugs
+      shell: bash
+      run: make spotbugs
+
+    - name: Run tests and verification
+      shell: bash
+      run: |
+        if make -n java_verify &>/dev/null; then
+          echo "Target exists"
+          make java_verify
+        else
+          echo "Target 'java_verify' not found, skipping..."
+        fi
+
+    - name: Save Maven cache
+      if: ${{ inputs.mainBuild == 'true' }}
+      uses: actions/cache/save@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+
+    - name: Create artifact tarball
+      if: ${{ inputs.mainBuild == 'true' }}
+      shell: bash
+      run: |
+        # Archive build artifacts preserving directory structure for multi-module projects
+        # Includes:
+        #   - All target/ directories (contains JARs, POMs, and other build outputs)
+        # Excludes:
+        #   - Test outputs that aren't needed for deployment
+
+        tar -cvpf ${{ inputs.artifactName }}.tar \
+          --exclude='**/surefire-reports' \
+          --exclude='**/test-classes' \
+          $(find . -type d -name "target")
+
+    - name: Upload artifact
+      if: ${{ inputs.mainBuild == 'true' }}
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.artifactName }}.tar
+        path: ${{ inputs.artifactName }}.tar
+        retention-days: 7
+
+    - name: Upload artifact with Java suffix
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.artifactName }}-java-${{ inputs.javaVersion }}.tar
+        path: ${{ inputs.artifactName }}.tar
+        retention-days: 7

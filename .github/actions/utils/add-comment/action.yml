@@ -1,0 +1,76 @@
+name: Add Comment
+description: "Posts a comment on the pull-request or updates an existing one"
+
+inputs:
+  commentMessage:
+    description: "Message that will be put as a comment"
+    required: true
+  commentId:
+    description: "Optional comment ID to update instead of creating new one"
+    required: false
+
+outputs:
+  commentId:
+    description: "The ID of the created or updated comment"
+    value: ${{ steps.comment-and-check.outputs.comment-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Add comment
+      id: comment-and-check
+      uses: actions/github-script@v8
+      env:
+        MESSAGE: ${{ inputs.commentMessage }}
+        COMMENT_ID: ${{ inputs.commentId }}
+      with:
+        script: |
+          const {owner, repo} = context.repo;
+
+          const msg       = process.env.MESSAGE
+          const commentId = process.env.COMMENT_ID
+          let   sha       = undefined
+          let   prNumber  = undefined;
+
+          //------------------------------------------------------------------
+          // 1) Work out PR number & HEAD SHA
+          //------------------------------------------------------------------
+          if (context.payload.pull_request) {
+            prNumber = context.payload.pull_request.number;
+            sha    ||= context.payload.pull_request.head.sha;
+          } else if (context.payload.issue?.pull_request) {
+            prNumber = context.payload.issue.number;
+            if (!sha) {
+              const pr = await github.request(
+                context.payload.issue.pull_request.url);
+              sha = pr.data.head.sha;
+            }
+          } else {
+            sha ||= context.sha;
+          }
+
+          core.info(`Going to put a comment to PR "${prNumber}" ("${sha}") - "${msg}"`);
+
+          //------------------------------------------------------------------
+          // 2) Add / update PR comment
+          //------------------------------------------------------------------
+          if (prNumber) {
+            // Update existing comment if commentId provided
+            if (commentId) {
+              core.info(`Updating existing comment ${commentId}`);
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: commentId,
+                body: msg
+              });
+              core.setOutput('comment-id', commentId);
+            } else {
+              // Create new comment
+              core.info(`Creating new comment`);
+              const comment = await github.rest.issues.createComment({
+                owner, repo, issue_number: prNumber, body: msg
+              });
+              core.setOutput('comment-id', comment.data.id);
+            }
+          }

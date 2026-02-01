@@ -1,0 +1,185 @@
+name: Test Dependency Actions
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - "main"
+      # Remove this after testing
+      - "extract-actions"
+    tags:
+      - "*"
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+
+# Cancel previous builds on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-install-docker:
+    name: Test install-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-docker action
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Verify Docker installation
+        run: |
+          docker --version
+          docker buildx version
+          docker buildx ls
+
+  test-install-helm:
+    name: Test install-helm
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        helmVersion: ['v3.20.0', 'v3.16.0']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-helm action
+        uses: ./.github/actions/dependencies/install-helm
+        with:
+          helmVersion: ${{ matrix.helmVersion }}
+
+      - name: Verify Helm installation
+        run: |
+          helm version
+          helm plugin list | grep unittest
+
+  test-install-shellcheck:
+    name: Test install-shellcheck
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: ['amd64']
+        version: ['0.11.0', '0.10.0']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-shellcheck action
+        uses: ./.github/actions/dependencies/install-shellcheck
+        with:
+          architecture: ${{ matrix.architecture }}
+          version: ${{ matrix.version }}
+
+      - name: Verify shellcheck installation
+        run: |
+          shellcheck --version
+          echo '#!/bin/bash' > test.sh
+          echo 'echo "test"' >> test.sh
+          shellcheck test.sh
+
+  test-install-syft:
+    name: Test install-syft
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: ['amd64']
+        version: ['0.90.0', '1.0.0']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-syft action
+        uses: ./.github/actions/dependencies/install-syft
+        with:
+          architecture: ${{ matrix.architecture }}
+          version: ${{ matrix.version }}
+
+      - name: Verify syft installation
+        run: |
+          syft version
+
+  test-install-yq:
+    name: Test install-yq
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: ['amd64']
+        version: ['v4.6.3', 'v4.52.2']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-yq action
+        uses: ./.github/actions/dependencies/install-yq
+        with:
+          architecture: ${{ matrix.architecture }}
+          version: ${{ matrix.version }}
+
+      - name: Verify yq installation
+        run: |
+          yq --version
+
+  test-setup-java:
+    name: Test setup-java
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        javaVersion: ['17', '21']
+        mavenVersion: ['3.9.9', '3.8.8']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup-java action
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ matrix.javaVersion }}
+          mavenVersion: ${{ matrix.mavenVersion }}
+
+      - name: Verify Java and Maven installation
+        run: |
+          java -version
+          mvn --version
+
+  test-setup-kind:
+    name: Test setup-kind
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        kindNodeImage:
+          - latest
+          - oldest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup-kind action
+        uses: ./.github/actions/dependencies/setup-kind
+        env:
+          KIND_NODE_IMAGE: ${{ matrix.kindNodeImage }}
+
+      - name: Verify Kind cluster
+        run: |
+          kind version
+          kubectl cluster-info
+          kubectl get nodes
+
+  test-setup-minikube:
+    name: Test setup-minikube
+    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        minikubeVersion: ['v1.32.0', 'v1.33.0']
+#        kubernetesVersion: ['v1.28.0', 'v1.29.0']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup-minikube action
+        uses: ./.github/actions/dependencies/setup-minikube
+#        with:
+#          minikubeVersion: ${{ matrix.minikubeVersion }}
+#          kubernetesVersion: ${{ matrix.kubernetesVersion }}
+
+      - name: Verify Minikube cluster
+        run: |
+          minikube version
+          kubectl cluster-info
+          kubectl get nodes

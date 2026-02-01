@@ -1,0 +1,22 @@
+name: "Install Shellcheck"
+description: "Install Shellcheck tool by our script"
+
+inputs:
+  architecture:
+    description: "Architecture"
+    required: false
+    default: "amd64"
+  version:
+    description: "Version"
+    required: false
+    default: "0.11.0"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install shellcheck
+      shell: bash
+      run: |
+        ${{ github.action_path }}/setup_shellcheck.sh "${{ inputs.architecture }}"
+      env:
+        VERSION: ${{ inputs.version }}

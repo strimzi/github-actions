@@ -1,0 +1,22 @@
+name: "Install yq tool"
+description: "Install yq tool by our script"
+
+inputs:
+  architecture:
+    description: "Architecture"
+    required: false
+    default: "amd64"
+  version:
+    description: "Version"
+    required: false
+    default: "v4.6.3"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        ${{ github.action_path }}/install_yq.sh "${{ inputs.architecture }}"
+      env:
+        VERSION: ${{ inputs.version }}

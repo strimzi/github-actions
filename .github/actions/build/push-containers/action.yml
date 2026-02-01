@@ -1,0 +1,176 @@
+name: "Push Containers"
+description: "Pushes container images and creates manifests"
+
+inputs:
+  architectures:
+    description: "Comma-separated list of architectures (e.g., 'amd64,arm64,s390x,ppc64le')"
+    required: true
+  runnerArch:
+    description: "Runner architecture (amd64, arm64)"
+    required: false
+    default: "amd64"
+  containerRegistry:
+    description: "Container registry (e.g., quay.io, ghcr.io)"
+    required: false
+    default: "quay.io"
+  containerOrg:
+    description: "Container organization/namespace"
+    required: false
+    default: "strimzi"
+  containerTag:
+    description: "Container image tag"
+    required: false
+    default: "latest"
+  registryUser:
+    description: "Container registry username"
+    required: true
+  registryPassword:
+    description: "Container registry password"
+    required: true
+  buildRunId:
+    description: "Build workflow run ID for artifact download"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Docker
+      uses: ./.github/actions/dependencies/install-docker
+
+    - name: Install yq
+      uses: ./.github/actions/dependencies/install-yq
+      with:
+        architecture: ${{ inputs.runnerArch }}
+
+    - name: Install Syft
+      uses: ./.github/actions/dependencies/install-syft
+      with:
+        architecture: ${{ inputs.runnerArch }}
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v4.0.0
+
+    - name: Download container artifact
+      if: ${{ inputs.buildRunId != '' }}
+      uses: actions/download-artifact@v7
+      with:
+        pattern: containers-*
+        path: ./
+        merge-multiple: true
+        run-id: ${{ inputs.buildRunId }}
+        github-token: ${{ github.token }}
+
+    - name: Download container artifact
+      if: ${{ inputs.buildRunId == '' }}
+      uses: actions/download-artifact@v7
+      with:
+        pattern: containers-*
+        path: ./
+        merge-multiple: true
+
+    - name: Extract container archives
+      shell: bash
+      run: |
+        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        for arch in "${ARCH_ARRAY[@]}"; do
+          tar -xvf "containers-${arch}.tar"
+          rm "containers-${arch}.tar"
+        done
+
+    - name: Login to container registry
+      shell: bash
+      run: docker login -u ${{ inputs.registryUser }} -p ${{ inputs.registryPassword }} ${{ inputs.containerRegistry }}
+
+    - name: Delete existing container manifests
+      shell: bash
+      run: make docker_delete_manifest
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}
+        
+    - name: Push containers and create manifests
+      shell: bash
+      run: |
+        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        for arch in "${ARCH_ARRAY[@]}"; do
+          echo "Processing architecture: ${arch}"
+          export DOCKER_ARCHITECTURE="${arch}"
+          make docker_load docker_tag docker_push docker_amend_manifest docker_delete_archive
+        done
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}
+
+    - name: Push container manifests
+      shell: bash
+      run: make docker_push_manifest
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}
+
+    - name: Sign container manifests
+      shell: bash
+      run: make docker_gha_sign_manifest
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        BUILD_ID: ${{ github.run_number }}
+        BUILD_COMMIT: ${{ github.sha }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}
+
+    - name: Generate and sign SBOMs
+      shell: bash
+      run: |
+        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        for arch in "${ARCH_ARRAY[@]}"; do
+          echo "Generating SBOM for architecture: ${arch}"
+          export DOCKER_ARCHITECTURE="${arch}"
+          make docker_gha_sbom
+        done
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}
+
+    - name: Create SBOM archive
+      shell: bash
+      run: tar -z -C ./sbom/ -cvpf sbom.tar.gz ./
+
+    - name: Upload SBOM artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: SBOMs-${{ inputs.containerTag }}
+        path: sbom.tar.gz
+
+    - name: Push SBOMs to registry
+      if: ${{ startsWith(github.ref, 'refs/heads/release-') }}
+      shell: bash
+      run: |
+        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        for arch in "${ARCH_ARRAY[@]}"; do
+          echo "Pushing SBOM for architecture: ${arch}"
+          export DOCKER_ARCHITECTURE="${arch}"
+          make docker_gha_push_sbom
+        done
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        BUILD_ID: ${{ github.run_number }}
+        BUILD_COMMIT: ${{ github.sha }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}

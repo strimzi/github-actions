@@ -1,0 +1,31 @@
+name: "Log environment variables"
+description: "Log environment variables used by build mechanism and system test"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Print environment variables
+      shell: bash
+      run: |
+        echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
+        echo "REPO_SLUG: ${{ github.repository }}"
+        echo "REASON (event_name): ${{ github.event_name }}"
+        echo "REF (determined): ${{ env.REF }}"
+        echo "COMMIT: ${{ github.sha }}"
+        echo "TAG: ${{ env.TAG }}"
+        echo "PULL_REQUEST: ${{ env.PULL_REQUEST }}"
+        echo "DOCKER_ORG: ${{ env.DOCKER_ORG }}"
+        echo "DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}"
+        echo "DOCKER_TAG: ${{ env.DOCKER_TAG }}"
+        echo "OPERATOR_IMAGE_PULL_POLICY: ${{ env.OPERATOR_IMAGE_PULL_POLICY }}"
+        echo "ST_KAFKA_VERSION: ${{ env.ST_KAFKA_VERSION }}"
+        echo "KAFKA_VERSION: ${{ env.KAFKA_VERSION }}"
+        echo "COMPONENTS_IMAGE_PULL_POLICY: ${{ env.COMPONENTS_IMAGE_PULL_POLICY }}"
+        echo "PROFILE: ${{ env.PROFILE }}"
+        echo "CLUSTER_OPERATOR_INSTALL_TYPE: ${{ env.CLUSTER_OPERATOR_INSTALL_TYPE }}"
+        echo "STRIMZI_FEATURE_GATES: ${{ env.STRIMZI_FEATURE_GATES }}"
+        echo "STRIMZI_RBAC_SCOPE: ${{ env.STRIMZI_RBAC_SCOPE }}"
+        echo "JAVA_HOME: $JAVA_HOME"
+        java -version
+        which java
+      continue-on-error: true

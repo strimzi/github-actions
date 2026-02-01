@@ -1,0 +1,85 @@
+name: "Release Artifacts"
+description: "Build release artifacts using Makefile and optionally deploy to Maven Central"
+
+inputs:
+  releaseVersion:
+    description: "Release version (e.g., 1.5.0)"
+    required: true
+  javaVersion:
+    description: "Java version"
+    required: false
+    default: "21"
+  includeHelm:
+    description: "Whether to install Helm"
+    required: false
+    default: "false"
+  artifactName:
+    description: "Name for the uploaded artifact"
+    required: false
+    default: "release.tar"
+  runnerArch:
+    description: "Runner architecture (amd64, arm64)"
+    required: false
+    default: "amd64"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Java and Maven
+      uses: ./.github/actions/dependencies/setup-java
+      with:
+        javaVersion: ${{ inputs.javaVersion }}
+
+    - name: Restore Maven cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Install yq
+      uses: ./.github/actions/dependencies/install-yq
+      with:
+        architecture: ${{ inputs.runnerArch }}
+
+    - name: Install Helm
+      if: ${{ inputs.includeHelm == 'true' }}
+      uses: ./.github/actions/dependencies/install-helm
+
+    - name: Build release artifacts
+      shell: bash
+      run: make release
+      env:
+        RELEASE_VERSION: ${{ inputs.releaseVersion }}
+        MVN_ARGS: '-B -DskipTests'
+
+    # TODO - call deploy-java instead in the workflow!
+#    - name: Deploy to Maven Central
+#      if: ${{ inputs.deployToMavenCentral == 'true' }}
+#      shell: bash
+#      run: ${{ github.action_path }}/push-to-central.sh
+#      env:
+#        BUILD_REASON: "IndividualCI"
+#        BRANCH: ${{ github.ref }}
+#        GPG_PASSPHRASE: ${{ inputs.gpgPassphrase }}
+#        GPG_SIGNING_KEY: ${{ inputs.gpgSigningKey }}
+#        CENTRAL_USERNAME: ${{ inputs.centralUsername }}
+#        CENTRAL_PASSWORD: ${{ inputs.centralPassword }}
+
+    - name: Create release tarball
+      shell: bash
+      run: |
+        # Find all release artifacts and create tarball
+        # This will include .tar.gz, .zip, .tgz (Helm charts), and any other release files
+        find . -type f \( -name "*${{ inputs.releaseVersion }}*.tar.gz" -o \
+                          -name "*${{ inputs.releaseVersion }}*.zip" -o \
+                          -name "*${{ inputs.releaseVersion }}*.tgz" \) \
+          -exec tar -rvf ${{ inputs.artifactName }} {} \;
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.artifactName }}
+        path: ${{ inputs.artifactName }}
+        retention-days: 30
