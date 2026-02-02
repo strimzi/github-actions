@@ -31,6 +31,9 @@ inputs:
     description: "Build workflow run ID for artifact download"
     required: false
     default: ""
+  artifactSuffix:
+    description: "Prefix/Suffix of archive with images"
+    required: true
 
 runs:
   using: "composite"
@@ -55,7 +58,7 @@ runs:
       if: ${{ inputs.buildRunId != '' }}
       uses: actions/download-artifact@v7
       with:
-        pattern: containers-*
+        pattern: containers-${{ inputs.artifactSuffix }}*
         path: ./
         merge-multiple: true
         run-id: ${{ inputs.buildRunId }}
@@ -65,7 +68,7 @@ runs:
       if: ${{ inputs.buildRunId == '' }}
       uses: actions/download-artifact@v7
       with:
-        pattern: containers-*
+        pattern: containers-${{ inputs.artifactSuffix }}*
         path: ./
         merge-multiple: true
 
@@ -74,8 +77,8 @@ runs:
       run: |
         IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
         for arch in "${ARCH_ARRAY[@]}"; do
-          tar -xvf "containers-${arch}.tar"
-          rm "containers-${arch}.tar"
+          tar -xvf "containers-${{ inputs.artifactSuffix }}-${arch}.tar"
+          rm "containers-${{ inputs.artifactSuffix }}-${arch}.tar"
         done
 
     - name: Login to container registry
@@ -153,7 +156,7 @@ runs:
     - name: Upload SBOM artifact
       uses: actions/upload-artifact@v5
       with:
-        name: SBOMs-${{ inputs.containerTag }}
+        name: SBOMs-${{ inputs.artifactSuffix }}-${{ inputs.containerTag }}.tar.gz
         path: sbom.tar.gz
 
     - name: Push SBOMs to registry

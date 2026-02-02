@@ -2,7 +2,7 @@ name: "Setup Minikube"
 description: "Installs minikube and configures cluster"
 
 inputs:
-  kubectlVersion:
+  kubeVersion:
     description: "Kubernetes CLI version to install"
     required: false
     default: "v1.38.0"
@@ -49,7 +49,8 @@ runs:
 
       env:
         TEST_CLUSTER: minikube
-        TEST_KUBECTL_VERSION: ${{ inputs.kubectlVersion }}
+        TEST_KUBECTL_VERSION: ${{ inputs.kubeVersion }}
+        KUBE_VERSION: ${{ inputs.kubeVersion }}
         TEST_MINIKUBE_VERSION: ${{ inputs.minikubeVersion }}
         REGISTRY_IMAGE: ${{ inputs.registry }}
         RETRIES: ${{ inputs.retries }}

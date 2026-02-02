@@ -5,6 +5,13 @@ TEST_HELM3_VERSION=${TEST_HELM3_VERSION:-'v3.20.0'}
 TEST_HELM_UNITTEST_VERSION=${TEST_HELM_UNITTEST_VERSION:-'v1.0.3'}
 
 function install_helm3 {
+    # Remove any pre-installed helm binary to avoid PATH conflicts
+    # (e.g., GitHub runners have helm in /usr/local/bin which takes precedence over /usr/bin)
+    if [ -f /usr/local/bin/helm ]; then
+        echo "Removing pre-installed helm at /usr/local/bin/helm..."
+        sudo rm -f /usr/local/bin/helm
+    fi
+
     export HELM_INSTALL_DIR=/usr/bin
     curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
     # we need to modify the script with a different path because on the Azure pipelines the HELM_INSTALL_DIR env var is not honoured

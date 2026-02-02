@@ -47,7 +47,8 @@ if [ "$TEST_CLUSTER" = "minikube" ]; then
     fi
 
     if [ "$KUBE_VERSION" != "latest" ] && [ "$KUBE_VERSION" != "stable" ]; then
-        KUBE_VERSION="v${KUBE_VERSION}"
+        # Strip existing 'v' prefix (if any) to avoid doubling it
+        KUBE_VERSION="v${KUBE_VERSION#v}"
     fi
 
     curl -Lo minikube ${TEST_MINIKUBE_URL} && chmod +x minikube

@@ -10,18 +10,25 @@ inputs:
     description: "Whether this is the main build (true) or a test build (false)"
     required: false
     default: "true"
-  artifactName:
-    description: "Name for the uploaded artifact"
+  artifactSuffix:
+    description: "Suffix/prefix for the uploaded artifact"
     required: false
-    default: "binaries.tar"
+    default: "binaries"
   runnerArch:
     description: "Runner architecture (amd64, arm64)"
     required: false
     default: "amd64"
+  operatorBuild:
+    description: "Enable Strimzi Operator specific build steps (Helm charts install, CRDs install, dashboards install, docs checks, uncommitted changes check)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
   steps:
+    #############################################################
+    # Common build steps
+    #############################################################
     - name: Setup Java and Maven
       uses: ./.github/actions/dependencies/setup-java
       with:
@@ -56,17 +63,72 @@ runs:
 
     - name: Run SpotBugs
       shell: bash
-      run: make spotbugs
+      run: |
+        if make -n spotbugs &>/dev/null; then
+          echo "Target exists"
+          make spotbugs
+        else
+          # TODO - Should be everywhere
+          echo "Target 'spotbugs' not found, skipping..."
+        fi
 
+    #############################################################
+    # The following steps gated by operatorBuild check
+    # are used only by Strimzi Kafka Operator repository.
+    # The other projects shouldn't use them.
+    #############################################################
+    - name: Setup dashboards for Helm Chart
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make dashboard_install"
+
+    - name: Generate YAMLs from Helm Chart
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make helm_install"
+
+    - name: Distribute CRDs
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make crd_install"
+
+    - name: Run Helm Chart unit tests
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make helm_unittest"
+
+    - name: Generate docs version files
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make docu_versions"
+
+    - name: Check docs
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make docu_check"
+
+    - name: Run Shellcheck
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make shellcheck"
+
+    - name: Check released files
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "make release_files_check"
+
+    - name: Check for uncommitted files
+      if: ${{ inputs.operatorBuild == 'true' }}
+      shell: bash
+      run: "${{ github.action_path }}/strimzi-operator-uncommitted-changes.sh"
+
+    #############################################################
+    # Common build steps
+    #############################################################
     - name: Run tests and verification
       shell: bash
       run: |
-        if make -n java_verify &>/dev/null; then
-          echo "Target exists"
-          make java_verify
-        else
-          echo "Target 'java_verify' not found, skipping..."
-        fi
+          make java_install
 
     - name: Save Maven cache
       if: ${{ inputs.mainBuild == 'true' }}
@@ -82,25 +144,23 @@ runs:
         # Archive build artifacts preserving directory structure for multi-module projects
         # Includes:
         #   - All target/ directories (contains JARs, POMs, and other build outputs)
+        #   - docker-images/artifacts/binaries (if exists)
         # Excludes:
         #   - Test outputs that aren't needed for deployment
 
-        tar -cvpf ${{ inputs.artifactName }}.tar \
+        PATHS_TO_ARCHIVE=$(find . -type d -name "target")
+        if [ -d "./docker-images/artifacts/binaries" ]; then
+          PATHS_TO_ARCHIVE="$PATHS_TO_ARCHIVE ./docker-images/artifacts/binaries"
+        fi
+
+        tar -cvpf binaries-${{ inputs.artifactSuffix }}.tar \
           --exclude='**/surefire-reports' \
-          --exclude='**/test-classes' \
-          $(find . -type d -name "target")
+          $PATHS_TO_ARCHIVE
 
     - name: Upload artifact
       if: ${{ inputs.mainBuild == 'true' }}
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ inputs.artifactName }}.tar
-        path: ${{ inputs.artifactName }}.tar
-        retention-days: 7
-
-    - name: Upload artifact with Java suffix
-      uses: actions/upload-artifact@v5
-      with:
-        name: ${{ inputs.artifactName }}-java-${{ inputs.javaVersion }}.tar
-        path: ${{ inputs.artifactName }}.tar
+        name: binaries-${{ inputs.artifactSuffix }}.tar
+        path: binaries-${{ inputs.artifactSuffix }}.tar
         retention-days: 7

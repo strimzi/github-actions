@@ -8,8 +8,8 @@ inputs:
   helmChartName:
     description: "Name of the Helm Chart to be published"
     required: true
-  archiveName:
-    description: "Name of archive with Helm Charts"
+  artifactSuffix:
+    description: "Prefix/Suffix of archive with images"
     required: true
   containerRegistry:
     description: "Container registry for Helm OCI artifacts (e.g., quay.io, ghcr.io)"
@@ -35,12 +35,12 @@ runs:
     - name: Download release artifacts
       uses: actions/download-artifact@v7
       with:
-        name: ${{ inputs.archiveName }}
+        name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
         path: ./
 
     - name: Extract release artifacts
       shell: bash
-      run: tar -xvf ${{ inputs.archiveName }}
+      run: tar -xvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
 
     - name: Login to OCI registry
       shell: bash

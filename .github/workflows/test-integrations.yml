@@ -1,0 +1,190 @@
+name: Integration tests
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - "main"
+      # Remove this after testing
+      - "extract-actions"
+    tags:
+      - "*"
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC keyless signing
+
+# Cancel previous builds on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-integration:
+    name: Integration Test - ${{ matrix.project.repo }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          # Strimzi Operator - Full pipeline with containers and Helm
+          - repo: "strimzi/strimzi-kafka-operator"
+            artifactSuffix: "operators"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "./,crd-annotations,crd-generator,test,api,v1-api-conversion"
+            nexusCheck: "strimzi"
+            javaVersion: "21"
+            helmChartName: "strimzi-kafka-operator-helm-3-chart"
+            releaseVersion: "6.6.6"
+            imagesDir: "./docker-images/container-archives"
+            operatorBuild: true
+
+          # Kafka Bridge - Full pipeline with containers
+          - repo: "strimzi/strimzi-kafka-bridge"
+            artifactSuffix: "kafka-bridge"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "./"
+            nexusCheck: "kafka-bridge"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "kafka-bridge-amd64.tar.gz"
+            operatorBuild: false
+
+          # Access Operator - Full pipeline with containers
+          - repo: "strimzi/kafka-access-operator"
+            artifactSuffix: "access-operator"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "./,api"
+            nexusCheck: "kafka-access-operator"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "access-operator-container-amd64.tar.gz"
+            operatorBuild: false
+
+          # MQTT Bridge - Full pipeline with containers
+          - repo: "strimzi/strimzi-mqtt-bridge"
+            artifactSuffix: "mqtt-bridge"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "none"
+            nexusCheck: "none"
+            javaVersion: "21"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "mqtt-bridge-amd64.tar.gz"
+            operatorBuild: false
+
+          # Drain Cleaner - Full pipeline with containers and Helm
+          - repo: "strimzi/drain-cleaner"
+            artifactSuffix: "drain-cleaner"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "none"
+            nexusCheck: "none"
+            javaVersion: "21"
+            helmChartName: "strimzi-drain-cleaner-helm-3-chart"
+            releaseVersion: "6.6.6"
+            imagesDir: "drain-cleaner-container-amd64.tar.gz"
+            operatorBuild: false
+
+          # Client Examples - Containers only (no Maven deploy)
+          - repo: "strimzi/client-examples"
+            artifactSuffix: "client-examples"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "none"
+            nexusCheck: "none"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "none"
+            imagesDir: "*-amd64.tar.gz"
+            operatorBuild: false
+
+# Not compatible yet
+#          # Test Clients - Containers only (no Maven deploy)
+#          - repo: "strimzi/test-clients"
+#            artifactSuffix: "test-clients"
+#            architecture: "amd64"
+#            buildContainers: true
+#            modules: "none"
+#            nexusCheck: "none"
+#            javaVersion: "17"
+#            helmChartName: "none"
+#            releaseVersion: "6.6.6"
+#            imagesDir: "test-clients-amd64.tar.gz"
+#            operatorBuild: false
+
+#          # Metrics Reporter - Java only (no containers)
+#          - repo: "strimzi/metrics-reporter"
+#            artifactSuffix: "metrics-reporter"
+#            architecture: "amd64"
+#            buildContainers: false
+#            modules: "./"
+#            nexusCheck: "metrics-reporter"
+#            javaVersion: "17"
+#            helmChartName: "none"
+#            releaseVersion: "6.6.6"
+#            imagesDir: "none"
+#            operatorBuild: false
+#
+#          # Kafka Quotas Plugin - Java only (no containers)
+#          - repo: "strimzi/kafka-quotas-plugin"
+#            artifactSuffix: "kafka-quotas-plugin"
+#            architecture: "amd64"
+#            buildContainers: false
+#            modules: "./"
+#            nexusCheck: "kafka-quotas-plugin"
+#            javaVersion: "17"
+#            helmChartName: "none"
+#            releaseVersion: "6.6.6"
+#            imagesDir: "none"
+#            operatorBuild: false
+#
+#          # Kafka Kubernetes Config Provider - Java only (no containers)
+#          - repo: "strimzi/kafka-kubernetes-config-provider"
+#            artifactSuffix: "kafka-kubernetes-config-provider"
+#            architecture: "amd64"
+#            buildContainers: false
+#            modules: "./"
+#            nexusCheck: "kafka-kubernetes-config-provider"
+#            javaVersion: "17"
+#            helmChartName: "none"
+#            releaseVersion: "6.6.6"
+#            imagesDir: "none"
+#            operatorBuild: false
+
+#          # Kafka OAuth - Java only (no containers)
+#          - repo: "strimzi/strimzi-kafka-oauth"
+#            architecture: "amd64"
+#            artifactName: "oauth-binaries"
+#            modules: "./,oauth-common,oauth-client,oauth-server"
+#            nexusCheck: "oauth-common"
+#            javaVersion: "17"
+#            helmChartName: "none"
+#            releaseVersion: "6.6.6"
+#            imagesDir: ""
+#            containersArchiveName: ""
+#            releaseArtifactName: "oauth-release"
+#            operatorBuild: false
+    
+    uses: ./.github/workflows/reusable-test-integrations.yml
+    with:
+      repo: ${{ matrix.project.repo }}
+      architecture: ${{ matrix.project.architecture }}
+      artifactSuffix: ${{ matrix.project.artifactSuffix }}
+      buildContainers: ${{ matrix.project.buildContainers }}
+      modules: ${{ matrix.project.modules }}
+      nexusCheck: ${{ matrix.project.nexusCheck }}
+      javaVersion: ${{ matrix.project.javaVersion }}
+      helmChartName: ${{ matrix.project.helmChartName }}
+      releaseVersion: ${{ matrix.project.releaseVersion }}
+      imagesDir: ${{ matrix.project.imagesDir }}
+      operatorBuild: ${{ matrix.project.operatorBuild }}
+    secrets: inherit

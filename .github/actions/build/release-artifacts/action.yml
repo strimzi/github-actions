@@ -13,10 +13,9 @@ inputs:
     description: "Whether to install Helm"
     required: false
     default: "false"
-  artifactName:
-    description: "Name for the uploaded artifact"
-    required: false
-    default: "release.tar"
+  artifactSuffix:
+    description: "Prefix/Suffix of archive with images"
+    required: true
   runnerArch:
     description: "Runner architecture (amd64, arm64)"
     required: false
@@ -47,6 +46,17 @@ runs:
       if: ${{ inputs.includeHelm == 'true' }}
       uses: ./.github/actions/dependencies/install-helm
 
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+
+    - name: Install asciidoctor
+      shell: bash
+      run: |
+        gem install asciidoctor
+        gem install asciidoctor-pdf
+
     - name: Build release artifacts
       shell: bash
       run: make release
@@ -75,11 +85,11 @@ runs:
         find . -type f \( -name "*${{ inputs.releaseVersion }}*.tar.gz" -o \
                           -name "*${{ inputs.releaseVersion }}*.zip" -o \
                           -name "*${{ inputs.releaseVersion }}*.tgz" \) \
-          -exec tar -rvf ${{ inputs.artifactName }} {} \;
+          -exec tar -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
 
     - name: Upload release artifacts
       uses: actions/upload-artifact@v5
       with:
-        name: ${{ inputs.artifactName }}
-        path: ${{ inputs.artifactName }}
+        name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+        path: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
         retention-days: 30

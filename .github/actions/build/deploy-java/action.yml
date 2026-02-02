@@ -12,10 +12,9 @@ inputs:
   projects:
     description: "Maven projects to be uploaded"
     required: true
-  artifactName:
-    description: "Name of the artifact with binaries (if needs to be downloaded)"
-    required: false
-    default: ""
+  artifactSuffix:
+    description: "Prefix/Suffix of archive with images"
+    required: true
   runnerArch:
     description: "Runner architecture (amd64, arm64)"
     required: false
@@ -62,24 +61,22 @@ runs:
         architecture: ${{ inputs.runnerArch }}
 
     - name: Download binaries artifact
-      if: ${{ inputs.artifactName != '' }}
       uses: actions/download-artifact@v7
       with:
-        name: ${{ inputs.artifactName }}
+        name: binaries-${{ inputs.artifactSuffix }}.tar
         path: ./
 
     - name: Extract binaries artifact
-      if: ${{ inputs.artifactName != '' }}
       shell: bash
       run: |
         # Extract the tarball preserving directory structure
         # This restores:
         #   - target/ directories with all build outputs
         #   - Multi-module project structure
-        tar -xvf ${{ inputs.artifactName }}
+        tar -xvf binaries-${{ inputs.artifactSuffix }}.tar
 
         # Remove the tarball to clean up
-        rm ${{ inputs.artifactName }}
+        rm binaries-${{ inputs.artifactSuffix }}.tar
 
         # Verify extraction
         echo "Extracted structure:"
