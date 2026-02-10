@@ -2,10 +2,6 @@ name: "Build Java Binaries"
 description: "Build and test Java binaries using standard Makefile targets"
 
 inputs:
-  javaVersion:
-    description: "Java version"
-    required: false
-    default: "17"
   mainBuild:
     description: "Whether this is the main build (true) or a test build (false)"
     required: false
@@ -14,10 +10,6 @@ inputs:
     description: "Suffix/prefix for the uploaded artifact"
     required: false
     default: "binaries"
-  runnerArch:
-    description: "Runner architecture (amd64, arm64)"
-    required: false
-    default: "amd64"
   operatorBuild:
     description: "Enable Strimzi Operator specific build steps (Helm charts install, CRDs install, dashboards install, docs checks, uncommitted changes check)"
     required: false
@@ -29,11 +21,6 @@ runs:
     #############################################################
     # Common build steps
     #############################################################
-    - name: Setup Java and Maven
-      uses: ./.github/actions/dependencies/setup-java
-      with:
-        javaVersion: ${{ inputs.javaVersion }}
-
     - name: Restore Maven cache
       uses: actions/cache/restore@v5
       with:
@@ -41,19 +28,6 @@ runs:
         key: maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           maven-
-
-    - name: Install yq
-      uses: ./.github/actions/dependencies/install-yq
-      with:
-        architecture: ${{ inputs.runnerArch }}
-
-    - name: Install Shellcheck
-      uses: ./.github/actions/dependencies/install-shellcheck
-      with:
-        architecture: ${{ inputs.runnerArch }}
-
-    - name: Install Helm
-      uses: ./.github/actions/dependencies/install-helm
 
     - name: Build binaries
       shell: bash

@@ -2,10 +2,6 @@ name: "Deploy Java Artifacts"
 description: "Deploys Java artifacts to Maven Central"
 
 inputs:
-  javaVersion:
-    description: "Java version"
-    required: false
-    default: "17"
   settingsPath:
     description: "Path to mvn settings file"
     required: true
@@ -15,10 +11,6 @@ inputs:
   artifactSuffix:
     description: "Prefix/Suffix of archive with images"
     required: true
-  runnerArch:
-    description: "Runner architecture (amd64, arm64)"
-    required: false
-    default: "amd64"
   gpgPassphrase:
     description: "GPG passphrase for signing"
     required: true
@@ -40,13 +32,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # We uses default Java and Maven versions defined in the action
-    # To change Java and Maven Version change them directly in the action
-    - name: Setup Java and Maven
-      uses: ./.github/actions/dependencies/setup-java
-      with:
-        javaVersion: ${{ inputs.javaVersion }}
-
     - name: Restore Maven cache
       uses: actions/cache/restore@v5
       with:
@@ -54,11 +39,6 @@ runs:
         key: maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           maven-
-
-    - name: Install yq
-      uses: ./.github/actions/dependencies/install-yq
-      with:
-        architecture: ${{ inputs.runnerArch }}
 
     - name: Download binaries artifact
       uses: actions/download-artifact@v7

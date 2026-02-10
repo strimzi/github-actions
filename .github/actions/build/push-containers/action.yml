@@ -5,10 +5,6 @@ inputs:
   architectures:
     description: "Comma-separated list of architectures (e.g., 'amd64,arm64,s390x,ppc64le')"
     required: true
-  runnerArch:
-    description: "Runner architecture (amd64, arm64)"
-    required: false
-    default: "amd64"
   containerRegistry:
     description: "Container registry (e.g., quay.io, ghcr.io)"
     required: false
@@ -38,19 +34,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Docker
-      uses: ./.github/actions/dependencies/install-docker
-
-    - name: Install yq
-      uses: ./.github/actions/dependencies/install-yq
-      with:
-        architecture: ${{ inputs.runnerArch }}
-
-    - name: Install Syft
-      uses: ./.github/actions/dependencies/install-syft
-      with:
-        architecture: ${{ inputs.runnerArch }}
-
     - name: Install Cosign
       uses: sigstore/cosign-installer@v4.0.0
 

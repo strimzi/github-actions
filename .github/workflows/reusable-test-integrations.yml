@@ -74,10 +74,23 @@ jobs:
           mkdir -p .github/actions
           cp -r github-actions/.github/actions/* .github/actions/
 
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Shellcheck
+        uses: ./.github/actions/dependencies/install-shellcheck
+
+      - name: Install Helm
+        uses: ./.github/actions/dependencies/install-helm
+
       - name: Build binaries using build-binaries action
         uses: ./.github/actions/build/build-binaries
         with:
-          javaVersion: ${{ inputs.javaVersion }}
           mainBuild: "true"
           artifactSuffix: ${{ inputs.artifactSuffix }}
           operatorBuild: ${{ inputs.operatorBuild }}
@@ -148,10 +161,17 @@ jobs:
 
           echo "✓ GPG key generated for testing"
 
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
       - name: Deploy to local Maven repository using deploy-java action
         uses: ./.github/actions/build/deploy-java
         with:
-          javaVersion: ${{ inputs.javaVersion }}
           settingsPath: "${{ github.workspace }}/github-actions/.github/tests/settings.xml"
           projects: ${{ inputs.modules }}
           artifactSuffix: "${{ inputs.artifactSuffix }}"
@@ -216,6 +236,15 @@ jobs:
           mkdir -p .github/actions
           cp -r github-actions/.github/actions/* .github/actions/
 
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Shellcheck
+        uses: ./.github/actions/dependencies/install-shellcheck
+
       - name: Build containers using build-containers action
         uses: ./.github/actions/build/build-containers
         with:
@@ -251,6 +280,15 @@ jobs:
           REGISTRY_USERNAME: "strimzi"
           REGISTRY_PASSWORD: "strimzi"
 
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Syft
+        uses: ./.github/actions/dependencies/install-syft
+
       - name: Push containers using push-containers action
         uses: ./.github/actions/build/push-containers
         with:
@@ -283,6 +321,17 @@ jobs:
         run: |
           mkdir -p .github/actions
           cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Helm
+        uses: ./.github/actions/dependencies/install-helm
 
       - name: Test release-artifacts action
         uses: ./.github/actions/build/release-artifacts
@@ -337,6 +386,9 @@ jobs:
           REGISTRY_IMAGE: "registry:3"
           REGISTRY_USERNAME: "strimzi"
           REGISTRY_PASSWORD: "strimzi"
+
+      - name: Install Helm
+        uses: ./.github/actions/dependencies/install-helm
 
       - name: Publish Helm charts using publish-helm action
         uses: ./.github/actions/build/publish-helm-chart

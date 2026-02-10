@@ -29,9 +29,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Helm
-      uses: ./.github/actions/dependencies/install-helm
-
     - name: Download release artifacts
       uses: actions/download-artifact@v7
       with:

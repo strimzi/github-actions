@@ -6,10 +6,6 @@ inputs:
     description: "Architecture of images"
     required: false
     default: "amd64"
-  runnerArch:
-    description: "Architecture of GitHub runner"
-    required: false
-    default: "amd64"
   buildRunId:
     description: "Build workflow run ID for artifact download"
     required: false
@@ -36,17 +32,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Docker
-      uses: ./.github/actions/dependencies/install-docker
-    - name: Install yq
-      uses: ./.github/actions/dependencies/install-yq
-      with:
-        architecture: ${{ inputs.runnerArch }}
-    - name: Install Shellcheck
-      uses: ./.github/actions/dependencies/install-shellcheck
-      with:
-        architecture: ${{ inputs.runnerArch }}
-
     - name: Download binaries from this workflow
       if: ${{ inputs.buildRunId == '' }}
       uses: actions/download-artifact@v7

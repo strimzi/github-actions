@@ -30,13 +30,17 @@ Actions for building, testing, and releasing Strimzi components.
 
 | Action                     | Description                                              | Key Inputs                                                                           |
 |----------------------------|----------------------------------------------------------|--------------------------------------------------------------------------------------|
-| `build/build-binaries`     | Builds and tests Java binaries using Makefile targets    | `javaVersion` (17), `operatorBuild` (false), `mainBuild` (true)                      |
+| `build/build-binaries`     | Builds and tests Java binaries using Makefile targets    | `operatorBuild` (false), `mainBuild` (true), `artifactSuffix` (binaries)             |
 | `build/build-containers`   | Builds and archives container images                     | `architecture` (amd64), `imagesDir` (required), `containerTag` (latest)              |
 | `build/push-containers`    | Pushes container images and creates multi-arch manifests | `architectures` (required), `registryUser` (required), `registryPassword` (required) |
 | `build/load-containers`    | Loads container images into Kind/Minikube registry       | `registry` (required: minikube/kind/external)                                        |
 | `build/deploy-java`        | Deploys Java artifacts to Maven Central                  | `projects` (required), `settingsPath` (required)                                     |
-| `build/release-artifacts`  | Builds release artifacts using Makefile                  | `releaseVersion` (required)                                                          |
+| `build/release-artifacts`  | Builds release artifacts using Makefile                  | `releaseVersion` (required), `artifactSuffix` (required)                             |
 | `build/publish-helm-chart` | Publishes Helm Chart as OCI artifact                     | `releaseVersion` (required), `helmChartName` (required)                              |
+
+> [!IMPORTANT]
+> Build actions do **not** install their own dependencies (Java, yq, Helm, Docker, Shellcheck, Syft, etc.).
+> Callers must install the required dependencies using the appropriate dependency actions **before** invoking a build action.
 
 > [!IMPORTANT]
 > The `build-binaries` action supports an `operatorBuild` input (default `false`) that enables Strimzi Kafka Operator specific build steps — Helm chart generation, CRD distribution, dashboard setup, documentation checks, and uncommitted changes verification.
