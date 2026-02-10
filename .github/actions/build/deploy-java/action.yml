@@ -2,9 +2,6 @@ name: "Deploy Java Artifacts"
 description: "Deploys Java artifacts to Maven Central"
 
 inputs:
-  settingsPath:
-    description: "Path to mvn settings file"
-    required: true
   projects:
     description: "Maven projects to be uploaded"
     required: true
@@ -23,11 +20,6 @@ inputs:
   centralPassword:
     description: "Maven Central password"
     required: true
-  # TODO - Should we allow it or just secretly pass via env?
-  deploymentUrl:
-    description: "Custom Maven repository URL (for testing with local Nexus). If not provided, uses Maven Central."
-    required: false
-    default: ""
 
 runs:
   using: "composite"
@@ -72,6 +64,5 @@ runs:
         GPG_SIGNING_KEY: ${{ inputs.gpgSigningKey }}
         CENTRAL_USERNAME: ${{ inputs.centralUsername }}
         CENTRAL_PASSWORD: ${{ inputs.centralPassword }}
-        SETTINGS_PATH: ${{ inputs.settingsPath }}
+        SETTINGS_PATH: ${{ github.action_path }}/settings.xml
         PROJECTS: ${{ inputs.projects }}
-        DEPLOYMENT_URL: ${{ inputs.deploymentUrl }}

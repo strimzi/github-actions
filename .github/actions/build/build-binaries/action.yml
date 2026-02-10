@@ -2,15 +2,14 @@ name: "Build Java Binaries"
 description: "Build and test Java binaries using standard Makefile targets"
 
 inputs:
-  mainBuild:
-    description: "Whether this is the main build (true) or a test build (false)"
+  mainJavaBuild:
+    description: "Whether this is the main Java version build (true) or just additional version for tests (false)"
     required: false
     default: "true"
   artifactSuffix:
     description: "Suffix/prefix for the uploaded artifact"
-    required: false
-    default: "binaries"
-  operatorBuild:
+    required: true
+  kafkaOperatorBuild:
     description: "Enable Strimzi Operator specific build steps (Helm charts install, CRDs install, dashboards install, docs checks, uncommitted changes check)"
     required: false
     default: "false"
@@ -47,54 +46,53 @@ runs:
         fi
 
     #############################################################
-    # The following steps gated by operatorBuild check
+    # The following steps gated by kafkaOperatorBuild check
     # are used only by Strimzi Kafka Operator repository.
     # The other projects shouldn't use them.
     #############################################################
     - name: Setup dashboards for Helm Chart
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make dashboard_install"
 
     - name: Generate YAMLs from Helm Chart
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make helm_install"
 
     - name: Distribute CRDs
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make crd_install"
 
     - name: Run Helm Chart unit tests
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make helm_unittest"
 
     - name: Generate docs version files
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make docu_versions"
 
     - name: Check docs
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make docu_check"
 
     - name: Run Shellcheck
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make shellcheck"
 
     - name: Check released files
-      if: ${{ inputs.operatorBuild == 'true' }}
+      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
       shell: bash
       run: "make release_files_check"
 
     - name: Check for uncommitted files
-      if: ${{ inputs.operatorBuild == 'true' }}
       shell: bash
-      run: "${{ github.action_path }}/strimzi-operator-uncommitted-changes.sh"
+      run: "${{ github.action_path }}/check-uncommitted-changes.sh"
 
     #############################################################
     # Common build steps
@@ -105,14 +103,14 @@ runs:
           make java_install
 
     - name: Save Maven cache
-      if: ${{ inputs.mainBuild == 'true' }}
+      if: ${{ inputs.mainJavaBuild == 'true' }}
       uses: actions/cache/save@v5
       with:
         path: ~/.m2/repository
         key: maven-${{ hashFiles('**/pom.xml') }}
 
     - name: Create artifact tarball
-      if: ${{ inputs.mainBuild == 'true' }}
+      if: ${{ inputs.mainJavaBuild == 'true' }}
       shell: bash
       run: |
         # Archive build artifacts preserving directory structure for multi-module projects
@@ -132,7 +130,7 @@ runs:
           $PATHS_TO_ARCHIVE
 
     - name: Upload artifact
-      if: ${{ inputs.mainBuild == 'true' }}
+      if: ${{ inputs.mainJavaBuild == 'true' }}
       uses: actions/upload-artifact@v5
       with:
         name: binaries-${{ inputs.artifactSuffix }}.tar

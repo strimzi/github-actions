@@ -43,7 +43,7 @@ on:
         description: "Directory/file that will be used as source for containers tar ball"
         required: true
         type: string
-      operatorBuild:
+      kafkaOperatorBuild:
         description: "Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
         required: false
         type: boolean
@@ -91,9 +91,9 @@ jobs:
       - name: Build binaries using build-binaries action
         uses: ./.github/actions/build/build-binaries
         with:
-          mainBuild: "true"
+          mainJavaBuild: "true"
           artifactSuffix: ${{ inputs.artifactSuffix }}
-          operatorBuild: ${{ inputs.operatorBuild }}
+          kafkaOperatorBuild: ${{ inputs.kafkaOperatorBuild }}
         env:
           # Always skipTests during testing of the actions to save time
           MVN_ARGS: "-B -DskipTests"
@@ -157,7 +157,7 @@ jobs:
 
           # Encode to base64
           GPG_KEY_BASE64=$(cat test-gpg-key.asc | base64 -w 0)
-          echo "GPG_SIGNING_KEY=$GPG_KEY_BASE64" >> $GITHUB_ENV
+          echo "GPG_SIGNING_KEY=$GPG_KEY_BASE64" >> "$GITHUB_ENV"
 
           echo "✓ GPG key generated for testing"
 
@@ -172,14 +172,14 @@ jobs:
       - name: Deploy to local Maven repository using deploy-java action
         uses: ./.github/actions/build/deploy-java
         with:
-          settingsPath: "${{ github.workspace }}/github-actions/.github/tests/settings.xml"
           projects: ${{ inputs.modules }}
           artifactSuffix: "${{ inputs.artifactSuffix }}"
           gpgPassphrase: "test-passphrase"
           gpgSigningKey: ${{ env.GPG_SIGNING_KEY }}
           centralUsername: "admin"
           centralPassword: ${{ env.NEXUS_PASSWORD }}
-          deploymentUrl: "http://localhost:8081/repository"
+        env:
+          DEPLOYMENT_URL: "http://localhost:8081/repository"
 
       - name: Verify deployment to Nexus
         run: |
@@ -332,6 +332,9 @@ jobs:
 
       - name: Install Helm
         uses: ./.github/actions/dependencies/install-helm
+
+      - name: Install AsciiDoctor
+        uses: ./.github/actions/dependencies/install-ascii-doctor
 
       - name: Test release-artifacts action
         uses: ./.github/actions/build/release-artifacts

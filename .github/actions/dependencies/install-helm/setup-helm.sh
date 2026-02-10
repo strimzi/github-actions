@@ -20,6 +20,7 @@ function install_helm3 {
 
     echo "Installing helm 3..."
     sudo ./get_helm.sh --version "${TEST_HELM3_VERSION}"
+    rm -f get_helm.sh
 
     echo "Verifying the installation of helm binary..."
     # run a proper helm command instead of, for example, "which helm", to verify that we can call the binary

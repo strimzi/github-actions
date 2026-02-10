@@ -74,23 +74,5 @@ curl -u admin:$NEXUS_PASSWORD -X PUT \
 
 echo "✓ Nexus setup complete"
 
-# Step 6: Create Maven settings.xml
-echo ">>> Creating Maven settings.xml..."
-mkdir -p "$SETTINGS_DIR"
-cat > "$SETTINGS_DIR/settings.xml" <<EOF
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
-    <servers>
-        <server>
-            <id>central</id>
-            <username>admin</username>
-            <password>$NEXUS_PASSWORD</password>
-        </server>
-    </servers>
-</settings>
-EOF
-
-echo "✓ Maven settings.xml created at $SETTINGS_DIR/settings.xml"
-echo ""
 echo "=== Nexus Setup Complete ==="
 echo "Admin password: $NEXUS_PASSWORD"
-echo "Settings file: $SETTINGS_DIR/settings.xml"

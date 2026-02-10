@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - "main"
-      # Remove this after testing
+      # TODO - Remove this after testing
       - "extract-actions"
     tags:
       - "*"
@@ -245,11 +245,11 @@ jobs:
 
           ACTUAL_CONTROL=$(kubectl get nodes --no-headers -l node-role.kubernetes.io/control-plane | wc -l)
           echo "Expected ${{ matrix.controlNodes }} control-plane nodes, got ${ACTUAL_CONTROL}"
-          [ "${ACTUAL_CONTROL}" -eq "${{ matrix.controlNodes }}" ]
+          [ "${ACTUAL_CONTROL}" = "${{ matrix.controlNodes }}" ]
 
           ACTUAL_WORKERS=$(kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' | wc -l)
           echo "Expected ${{ matrix.workerNodes }} worker nodes, got ${ACTUAL_WORKERS}"
-          [ "${ACTUAL_WORKERS}" -eq "${{ matrix.workerNodes }}" ]
+          [ "${ACTUAL_WORKERS}" = "${{ matrix.workerNodes }}" ]
 
       - name: Verify rack-key labels on all nodes
         run: |
@@ -269,7 +269,7 @@ jobs:
           docker ps --filter name=kind-registry --format '{{.Names}}' | grep -q kind-registry
           echo "kind-registry container is running"
 
-          REGISTRY=$(echo "${DOCKER_REGISTRY}")
+          REGISTRY="${DOCKER_REGISTRY}"
           echo "Registry address: ${REGISTRY}"
 
           # Tag and push a small image to the local registry
@@ -280,7 +280,7 @@ jobs:
 
       - name: Verify registry is accessible from inside the cluster
         run: |
-          REGISTRY=$(echo "${DOCKER_REGISTRY}")
+          REGISTRY="${DOCKER_REGISTRY}"
 
           # Run a pod that pulls the test image from the local registry
           kubectl run registry-test \

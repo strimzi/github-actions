@@ -1,0 +1,22 @@
+name: "Setup Ruby and install AsciiDoctor"
+description: "Setup Ruby and install AsciiDoctor"
+
+inputs:
+  rubyVersion:
+    description: "Ruby version to be installed"
+    required: false
+    default: "3.2"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ inputs.rubyVersion }}
+
+    - name: Install asciidoctor
+      shell: bash
+      run: |
+        gem install asciidoctor
+        gem install asciidoctor-pdf

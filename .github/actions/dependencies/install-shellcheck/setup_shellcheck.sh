@@ -12,5 +12,6 @@ fi
 
 wget https://github.com/koalaman/shellcheck/releases/download/v$VERSION/shellcheck-v$VERSION.linux.$ARCH.tar.xz -O shellcheck.tar.xz
 tar xf shellcheck.tar.xz -C /tmp --strip-components 1
+rm -f shellcheck.tar.xz
 chmod +x /tmp/shellcheck
 sudo mv /tmp/shellcheck /usr/bin
