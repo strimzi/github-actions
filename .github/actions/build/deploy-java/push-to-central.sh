@@ -29,7 +29,7 @@ MVN_CMD="GPG_EXECUTABLE=gpg mvn $MVN_ARGS \
   -Dmaven.test.skip=true \
   -Dmaven.install.skip=true \
   -s $SETTINGS_PATH \
-  -pl $PROJECTS \
+  -pl $MODULES \
   -P central"
 
 # Override deployment repository if custom URL provided (for testing with local Nexus)

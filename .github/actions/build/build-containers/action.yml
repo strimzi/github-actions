@@ -3,7 +3,7 @@ description: "Build and archive images"
 
 inputs:
   architecture:
-    description: "Architecture of images"
+    description: "Architecture of images built in this action"
     required: false
     default: "amd64"
   buildRunId:

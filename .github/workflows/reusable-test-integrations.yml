@@ -43,7 +43,7 @@ on:
         description: "Directory/file that will be used as source for containers tar ball"
         required: true
         type: string
-      kafkaOperatorBuild:
+      clusterOperatorBuild:
         description: "Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
         required: false
         type: boolean
@@ -93,7 +93,7 @@ jobs:
         with:
           mainJavaBuild: "true"
           artifactSuffix: ${{ inputs.artifactSuffix }}
-          kafkaOperatorBuild: ${{ inputs.kafkaOperatorBuild }}
+          clusterOperatorBuild: ${{ inputs.clusterOperatorBuild }}
         env:
           # Always skipTests during testing of the actions to save time
           MVN_ARGS: "-B -DskipTests"
@@ -172,7 +172,7 @@ jobs:
       - name: Deploy to local Maven repository using deploy-java action
         uses: ./.github/actions/build/deploy-java
         with:
-          projects: ${{ inputs.modules }}
+          modules: ${{ inputs.modules }}
           artifactSuffix: "${{ inputs.artifactSuffix }}"
           gpgPassphrase: "test-passphrase"
           gpgSigningKey: ${{ env.GPG_SIGNING_KEY }}

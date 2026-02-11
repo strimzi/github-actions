@@ -9,7 +9,7 @@ inputs:
   artifactSuffix:
     description: "Suffix/prefix for the uploaded artifact"
     required: true
-  kafkaOperatorBuild:
+  clusterOperatorBuild:
     description: "Enable Strimzi Operator specific build steps (Helm charts install, CRDs install, dashboards install, docs checks, uncommitted changes check)"
     required: false
     default: "false"
@@ -46,47 +46,47 @@ runs:
         fi
 
     #############################################################
-    # The following steps gated by kafkaOperatorBuild check
+    # The following steps gated by clusterOperatorBuild check
     # are used only by Strimzi Kafka Operator repository.
     # The other projects shouldn't use them.
     #############################################################
     - name: Setup dashboards for Helm Chart
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make dashboard_install"
 
     - name: Generate YAMLs from Helm Chart
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make helm_install"
 
     - name: Distribute CRDs
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make crd_install"
 
     - name: Run Helm Chart unit tests
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make helm_unittest"
 
     - name: Generate docs version files
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make docu_versions"
 
     - name: Check docs
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make docu_check"
 
     - name: Run Shellcheck
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make shellcheck"
 
     - name: Check released files
-      if: ${{ inputs.kafkaOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
       run: "make release_files_check"
 

@@ -31,7 +31,7 @@ Actions for building, testing, and releasing Strimzi components.
 
 | Action                     | Description                                              | Key Inputs                                                                           |
 |----------------------------|----------------------------------------------------------|--------------------------------------------------------------------------------------|
-| `build/build-binaries`     | Builds and tests Java binaries using Makefile targets    | `kafkaOperatorBuild` (false), `mainBuild` (true), `artifactSuffix` (binaries)             |
+| `build/build-binaries`     | Builds and tests Java binaries using Makefile targets    | `clusterOperatorBuild` (false), `mainBuild` (true), `artifactSuffix` (binaries)      |
 | `build/build-containers`   | Builds and archives container images                     | `architecture` (amd64), `imagesDir` (required), `containerTag` (latest)              |
 | `build/push-containers`    | Pushes container images and creates multi-arch manifests | `architectures` (required), `registryUser` (required), `registryPassword` (required) |
 | `build/load-containers`    | Loads container images into Kind/Minikube registry       | `registry` (required: minikube/kind/external)                                        |
@@ -44,7 +44,7 @@ Actions for building, testing, and releasing Strimzi components.
 > Callers must install the required dependencies using the appropriate dependency actions **before** invoking a build action.
 
 > [!IMPORTANT]
-> The `build-binaries` action supports an `kafkaOperatorBuild` input (default `false`) that enables Strimzi Kafka Operator specific build steps — Helm chart generation, CRD distribution, dashboard setup, documentation checks, and uncommitted changes verification.
+> The `build-binaries` action supports an `clusterOperatorBuild` input (default `false`) that enables Strimzi Kafka Operator specific build steps — Helm chart generation, CRD distribution, dashboard setup, documentation checks, and uncommitted changes verification.
 > Other repositories should leave this disabled.
 
 ## Test Workflows
@@ -66,7 +66,7 @@ Tests all dependency actions with version matrix combinations:
 
 End-to-end integration tests that run the full build pipeline (build binaries, deploy Java, build/push containers, release artifacts, publish Helm) against multiple Strimzi repositories:
 
-- strimzi-kafka-operator (with `kafkaOperatorBuild: true`)
+- strimzi-kafka-operator (with `clusterOperatorBuild: true`)
 - strimzi-kafka-bridge
 - kafka-access-operator
 - strimzi-mqtt-bridge

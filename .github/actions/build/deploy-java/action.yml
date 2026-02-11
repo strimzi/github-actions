@@ -2,8 +2,8 @@ name: "Deploy Java Artifacts"
 description: "Deploys Java artifacts to Maven Central"
 
 inputs:
-  projects:
-    description: "Maven projects to be uploaded"
+  modules:
+    description: "Maven modules to be uploaded"
     required: true
   artifactSuffix:
     description: "Prefix/Suffix of archive with images"
@@ -65,4 +65,4 @@ runs:
         CENTRAL_USERNAME: ${{ inputs.centralUsername }}
         CENTRAL_PASSWORD: ${{ inputs.centralPassword }}
         SETTINGS_PATH: ${{ github.action_path }}/settings.xml
-        PROJECTS: ${{ inputs.projects }}
+        MODULES: ${{ inputs.modules }}
