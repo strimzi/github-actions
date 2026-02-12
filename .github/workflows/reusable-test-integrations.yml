@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       artifactSuffix:
-        description: "Prefix/Suffix of the artifact (e.g., kafka-bridge)"
+        description: "Suffix of the artifact (e.g., kafka-bridge)"
         required: true
         type: string
       buildContainers:

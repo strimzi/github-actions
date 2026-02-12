@@ -28,7 +28,7 @@ inputs:
     required: false
     default: ""
   artifactSuffix:
-    description: "Prefix/Suffix of archive with images"
+    description: "Suffix of archive with images"
     required: true
 
 runs:

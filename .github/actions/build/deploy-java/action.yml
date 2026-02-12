@@ -6,7 +6,7 @@ inputs:
     description: "Maven modules to be uploaded"
     required: true
   artifactSuffix:
-    description: "Prefix/Suffix of archive with images"
+    description: "Suffix of archive with images"
     required: true
   gpgPassphrase:
     description: "GPG passphrase for signing"

@@ -9,7 +9,7 @@ inputs:
     description: "Name of the Helm Chart to be published"
     required: true
   artifactSuffix:
-    description: "Prefix/Suffix of archive with images"
+    description: "Suffix of archive with images"
     required: true
   containerRegistry:
     description: "Container registry for Helm OCI artifacts (e.g., quay.io, ghcr.io)"

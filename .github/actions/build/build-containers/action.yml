@@ -26,7 +26,7 @@ inputs:
     description: "Path to directory with images tar balls"
     required: true
   artifactSuffix:
-    description: "Prefix/Suffix of archive with images"
+    description: "Suffix of archive with images"
     required: true
 
 runs:
