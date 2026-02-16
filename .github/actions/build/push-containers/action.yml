@@ -91,6 +91,9 @@ runs:
         BUILD_REASON: "IndividualCI"
         BRANCH: ${{ github.ref }}
         MANIFEST_ARCHITECTURES: ${{ inputs.architectures }}
+        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
+        DOCKER_ORG: ${{ inputs.containerOrg }}
+        DOCKER_TAG: ${{ inputs.containerTag }}
 
     - name: Sign container manifests
       shell: bash
