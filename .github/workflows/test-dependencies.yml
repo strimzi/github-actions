@@ -114,8 +114,8 @@ jobs:
         architecture:
           - 'amd64'
         version:
-          - '0.90.0'
           - '1.0.0'
+          - '1.20.0'
     steps:
       - uses: actions/checkout@v4
 

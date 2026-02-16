@@ -20,7 +20,7 @@ Actions for installing tools and setting up Kubernetes clusters.
 | `dependencies/install-helm`         | Installs Helm and helm-unittest plugin                             | `helmVersion` (v3.20.0), `helmUnitTestVersion` (v1.0.3)                                       |
 | `dependencies/install-yq`           | Installs yq YAML processor                                         | `version` (v4.6.3), `architecture` (amd64)                                                    |
 | `dependencies/install-shellcheck`   | Installs ShellCheck linter                                         | `version` (0.11.0), `architecture` (amd64)                                                    |
-| `dependencies/install-syft`         | Installs Syft SBOM generation tool                                 | `version` (0.90.0), `architecture` (amd64)                                                    |
+| `dependencies/install-syft`         | Installs Syft SBOM generation tool                                 | `version` (1.20.0), `architecture` (amd64)                                                    |
 | `dependencies/install-ascii-doctor` | Installs Ascii Doctor tool                                         | `rubyVersion` (3.2)                                                                           |
 | `dependencies/setup-kind`           | Creates a Kind cluster with local registry and cloud-provider-kind | `kindVersion` (0.31.0), `controlNodes` (1), `workerNodes` (1), `cloudProviderVersion` (0.6.0) |
 | `dependencies/setup-minikube`       | Creates a Minikube cluster with local registry                     | `minikubeVersion` (v1.38.0), `kubeVersion` (v1.38.0)                                          |
