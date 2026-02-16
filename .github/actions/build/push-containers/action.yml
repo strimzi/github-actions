@@ -68,16 +68,6 @@ runs:
       shell: bash
       run: docker login -u ${{ inputs.registryUser }} -p ${{ inputs.registryPassword }} ${{ inputs.containerRegistry }}
 
-    - name: Delete existing container manifests
-      shell: bash
-      run: make docker_delete_manifest
-      env:
-        BUILD_REASON: "IndividualCI"
-        BRANCH: ${{ github.ref }}
-        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
-        DOCKER_ORG: ${{ inputs.containerOrg }}
-        DOCKER_TAG: ${{ inputs.containerTag }}
-        
     - name: Push containers and create manifests
       shell: bash
       run: |
@@ -85,7 +75,7 @@ runs:
         for arch in "${ARCH_ARRAY[@]}"; do
           echo "Processing architecture: ${arch}"
           export DOCKER_ARCHITECTURE="${arch}"
-          make docker_load docker_tag docker_push docker_amend_manifest docker_delete_archive
+          make docker_load docker_tag docker_push docker_delete_archive
         done
       env:
         BUILD_REASON: "IndividualCI"
@@ -94,15 +84,13 @@ runs:
         DOCKER_ORG: ${{ inputs.containerOrg }}
         DOCKER_TAG: ${{ inputs.containerTag }}
 
-    - name: Push container manifests
+    - name: Create multi-platform manifests
       shell: bash
-      run: make docker_push_manifest
+      run: make docker_amend_manifest
       env:
         BUILD_REASON: "IndividualCI"
         BRANCH: ${{ github.ref }}
-        DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
-        DOCKER_ORG: ${{ inputs.containerOrg }}
-        DOCKER_TAG: ${{ inputs.containerTag }}
+        MANIFEST_ARCHITECTURES: ${{ inputs.architectures }}
 
     - name: Sign container manifests
       shell: bash
