@@ -398,7 +398,7 @@ jobs:
         with:
           registryUser: "strimzi"
           registryPassword: "strimzi"
-          containerRegistry: "registry.strimzi:5000"
+          containerRegistry: "registry.strimzi:443"
           helmChartName: ${{ inputs.helmChartName}}
           releaseVersion: ${{ inputs.releaseVersion }}
           artifactSuffix: ${{ inputs.artifactSuffix }}
