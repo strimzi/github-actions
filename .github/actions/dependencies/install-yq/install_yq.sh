@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 ARCH=$1
 if [ -z "$ARCH" ]; then
