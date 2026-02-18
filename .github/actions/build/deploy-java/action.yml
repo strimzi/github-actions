@@ -6,8 +6,9 @@ inputs:
     description: "Maven modules to be uploaded"
     required: true
   artifactSuffix:
-    description: "Suffix of archive with images"
-    required: true
+    description: "Suffix of archive with binaries. If empty, artifacts will be rebuilt from source."
+    required: false
+    default: ""
   gpgPassphrase:
     description: "GPG passphrase for signing"
     required: true
@@ -33,12 +34,14 @@ runs:
           maven-
 
     - name: Download binaries artifact
+      if: inputs.artifactSuffix != ''
       uses: actions/download-artifact@v7
       with:
         name: binaries-${{ inputs.artifactSuffix }}.tar
         path: ./
 
     - name: Extract binaries artifact
+      if: inputs.artifactSuffix != ''
       shell: bash
       run: |
         # Extract the tarball preserving directory structure

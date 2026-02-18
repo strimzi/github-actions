@@ -14,20 +14,14 @@ export GPG_TTY=$(tty)
 echo $GPG_SIGNING_KEY | base64 -d > signing.gpg
 gpg --batch --import signing.gpg
 
-# Deploy to Maven Central (or custom repository) using already-built artifacts
+# Deploy to Maven Central (or custom repository)
 # Flags explanation:
 #   -DskipTests: Skip test execution
-#   -Dmaven.main.skip=true: Skip compilation of main sources (use already compiled)
-#   -Dmaven.test.skip=true: Skip compilation of test sources
-#   -Dmaven.install.skip=true: Skip install phase
 #   -P central: Always use central profile for GPG signing and plugin configuration
 
 # Deploy Maven command
 MVN_CMD="GPG_EXECUTABLE=gpg mvn $MVN_ARGS \
   -DskipTests \
-  -Dmaven.main.skip=true \
-  -Dmaven.test.skip=true \
-  -Dmaven.install.skip=true \
   -s $SETTINGS_PATH \
   -pl $MODULES \
   -P central"
