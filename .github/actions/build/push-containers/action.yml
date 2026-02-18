@@ -96,6 +96,10 @@ runs:
         DOCKER_TAG: ${{ inputs.containerTag }}
 
     - name: Sign container manifests
+      # This condition is required for properly running the tests
+      # The keyless signing doesn't work on pull_requests events so this part will be tested only during push events
+      # It shouldn't affect the usage in Strimzi projects as images are always pushed and signed during push or workflow_dispatch events
+      if: ${{ github.event_name != 'pull_request' }}
       shell: bash
       run: make docker_gha_sign_manifest
       env:
