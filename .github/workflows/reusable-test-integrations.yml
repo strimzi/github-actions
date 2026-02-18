@@ -1,0 +1,404 @@
+name: Integration Test Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: "Repository to checkout (e.g., strimzi/strimzi-kafka-bridge)"
+        required: true
+        type: string
+      architecture:
+        description: "Architecture"
+        required: true
+        type: string
+      artifactSuffix:
+        description: "Suffix of the artifact (e.g., kafka-bridge)"
+        required: true
+        type: string
+      buildContainers:
+        description: "Flag whether containers should be build"
+        required: true
+        type: boolean
+      modules:
+        description: "List of modules to deploy (e.g., './,api' or 'none' to skip)"
+        required: true
+        type: string
+      nexusCheck:
+        description: "Module name to check in Nexus (e.g., 'kafka-bridge')"
+        required: true
+        type: string
+      javaVersion:
+        description: "Java version to use for build (e.g., '17')"
+        required: true
+        type: string
+      helmChartName:
+        description: "Name of the Helm Chart to be pushed"
+        required: true
+        type: string
+      releaseVersion:
+        description: "Release version like 1.5.0"
+        required: true
+        type: string
+      imagesDir:
+        description: "Directory/file that will be used as source for containers tar ball"
+        required: true
+        type: string
+      clusterOperatorBuild:
+        description: "Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
+        required: false
+        type: boolean
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC keyless signing
+
+jobs:
+  test-build-binaries:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@v4
+        with:
+          path: github-actions
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Shellcheck
+        uses: ./.github/actions/dependencies/install-shellcheck
+
+      - name: Install Helm
+        uses: ./.github/actions/dependencies/install-helm
+
+      - name: Build binaries using build-binaries action
+        uses: ./.github/actions/build/build-binaries
+        with:
+          mainJavaBuild: "true"
+          artifactSuffix: ${{ inputs.artifactSuffix }}
+          clusterOperatorBuild: ${{ inputs.clusterOperatorBuild }}
+        env:
+          # Always skipTests during testing of the actions to save time
+          MVN_ARGS: "-B -DskipTests"
+
+      - name: Verify binaries artifact was created
+        run: |
+          if [ ! -f "binaries-${{ inputs.artifactSuffix }}.tar" ]; then
+            echo "❌ Binaries artifact not created"
+            exit 1
+          fi
+
+          echo "Binaries artifact contents:"
+          tar -tf binaries-${{ inputs.artifactSuffix }}.tar
+          echo "✓ Binaries artifact created successfully"
+
+  test-deploy-java:
+    name: Deploy to Maven
+    if: ${{ inputs.modules != 'none' }}
+    needs: test-build-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@v4
+        with:
+          path: github-actions
+
+      - name: Setup Nexus
+        run: github-actions/.github/tests/setup-nexus.sh
+        env:
+          NEXUS_URL: "http://localhost:8081"
+          NEXUS_IMAGE: "sonatype/nexus3:3.87.2"
+          SETTINGS_DIR: "github-actions/.github/tests/"
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Generate GPG key for testing
+        run: |
+          # Create a test GPG key (non-interactive)
+          cat > gpg-key-config <<EOF
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Name-Real: Test User
+          Name-Email: test@strimzi.io
+          Expire-Date: 0
+          EOF
+
+          gpg --batch --gen-key gpg-key-config
+
+          # Export the key
+          gpg --armor --export-secret-keys test@strimzi.io > test-gpg-key.asc
+
+          # Encode to base64
+          GPG_KEY_BASE64=$(cat test-gpg-key.asc | base64 -w 0)
+          echo "GPG_SIGNING_KEY=$GPG_KEY_BASE64" >> "$GITHUB_ENV"
+
+          echo "✓ GPG key generated for testing"
+
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Deploy to local Maven repository using deploy-java action
+        uses: ./.github/actions/build/deploy-java
+        with:
+          modules: ${{ inputs.modules }}
+          artifactSuffix: "${{ inputs.artifactSuffix }}"
+          gpgPassphrase: "test-passphrase"
+          gpgSigningKey: ${{ env.GPG_SIGNING_KEY }}
+          centralUsername: "admin"
+          centralPassword: ${{ env.NEXUS_PASSWORD }}
+        env:
+          DEPLOYMENT_URL: "http://localhost:8081/repository"
+
+      - name: Verify deployment to Nexus
+        run: |
+          echo ">>> Verifying deployment in Nexus..."
+          TIMEOUT=180  # 3 minutes
+          INTERVAL=5   # Check every 5 seconds
+          ELAPSED=0
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+              echo "Checking for artifacts... (${ELAPSED}s/${TIMEOUT}s)"
+              
+              SEARCH_RESULT=$(curl -s -u admin:${{ env.NEXUS_PASSWORD }} \
+                  "http://localhost:8081/service/rest/v1/search?repository=maven-snapshots&name=${{ inputs.nexusCheck }}" 2>/dev/null)
+              
+              ARTIFACT_COUNT=$(echo "$SEARCH_RESULT" | jq -r '.items | length' 2>/dev/null || echo "0")
+              
+              if [ "$ARTIFACT_COUNT" -gt 0 ]; then
+                  echo "✓ Found $ARTIFACT_COUNT artifact(s) deployed!"
+                  echo ""
+                  echo "Deployed artifacts:"
+                  echo "$SEARCH_RESULT" | jq '.items[] | {name: .name, version: .version, repository: .repository, assets: [.assets[].path]}'
+                  exit 0
+              fi
+              
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+          done
+
+          echo "❌ Timeout: No artifacts found in maven-snapshots after ${TIMEOUT} seconds"
+          echo "Last search result:"
+          echo "$SEARCH_RESULT" | jq '.' || echo "No valid response"
+          exit 1
+
+  test-build-containers:
+    name: Build Containers
+    if: ${{ inputs.buildContainers == true }}
+    needs:
+      - test-build-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@v4
+        with:
+          path: github-actions
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Shellcheck
+        uses: ./.github/actions/dependencies/install-shellcheck
+
+      - name: Build containers using build-containers action
+        uses: ./.github/actions/build/build-containers
+        with:
+          imagesDir: ${{ inputs.imagesDir }}
+          artifactSuffix: "${{ inputs.artifactSuffix }}"
+
+  test-push-containers:
+    name: Push Containers
+    needs:
+      - test-build-containers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@v4
+        with:
+          path: github-actions
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Setup local registry
+        run: github-actions/.github/tests/setup-registry.sh
+        env:
+          REGISTRY_IMAGE: "registry:3"
+          REGISTRY_USERNAME: "strimzi"
+          REGISTRY_PASSWORD: "strimzi"
+
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Syft
+        uses: ./.github/actions/dependencies/install-syft
+
+      - name: Push containers using push-containers action
+        uses: ./.github/actions/build/push-containers
+        with:
+          registryUser: "strimzi"
+          registryPassword: "strimzi"
+          containerRegistry: "registry.strimzi:443"
+          architectures: "amd64"
+          artifactSuffix: ${{ inputs.artifactSuffix }}
+
+  test-release-artifacts:
+    name: Release Artifacts
+    needs:
+      - test-build-binaries
+      - test-push-containers
+    if: ${{ always() && (needs.test-build-binaries.result == 'success') && (inputs.buildContainers == false || needs.test-push-containers.result == 'success') && (inputs.releaseVersion != 'none') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@v4
+        with:
+          path: github-actions
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Install Helm
+        uses: ./.github/actions/dependencies/install-helm
+
+      - name: Install AsciiDoctor
+        uses: ./.github/actions/dependencies/install-ascii-doctor
+
+      - name: Test release-artifacts action
+        uses: ./.github/actions/build/release-artifacts
+        with:
+          artifactSuffix: "${{ inputs.artifactSuffix }}"
+          releaseVersion: ${{ inputs.releaseVersion }}
+
+      - name: Verify release outputs
+        run: |
+          TARBALL="release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+
+          if [ ! -f "$TARBALL" ]; then
+            echo "❌ Release tarball not found: $TARBALL"
+            exit 1
+          fi
+
+          if [ ! -s "$TARBALL" ]; then
+            echo "❌ Release tarball is empty: $TARBALL"
+            exit 1
+          fi
+
+          echo "Release tarball contents:"
+          tar -tf "$TARBALL"
+          echo "✓ Release artifacts created successfully"
+
+  test-publish-helm:
+    name: Publish Helm Charts
+    if: ${{ inputs.helmChartName != 'none' }}
+    needs: test-release-artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+  
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@v4
+        with:
+          path: github-actions
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Setup local registry
+        run: github-actions/.github/tests/setup-registry.sh
+        env:
+          REGISTRY_IMAGE: "registry:3"
+          REGISTRY_USERNAME: "strimzi"
+          REGISTRY_PASSWORD: "strimzi"
+
+      - name: Install Helm
+        uses: ./.github/actions/dependencies/install-helm
+
+      - name: Publish Helm charts using publish-helm action
+        uses: ./.github/actions/build/publish-helm-chart
+        with:
+          registryUser: "strimzi"
+          registryPassword: "strimzi"
+          containerRegistry: "registry.strimzi:443"
+          helmChartName: ${{ inputs.helmChartName}}
+          releaseVersion: ${{ inputs.releaseVersion }}
+          artifactSuffix: ${{ inputs.artifactSuffix }}

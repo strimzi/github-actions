@@ -1,0 +1,22 @@
+name: "Install Syft"
+description: "Install Syft SBOM generation tool by our script"
+
+inputs:
+  architecture:
+    description: "Architecture"
+    required: false
+    default: "amd64"
+  version:
+    description: "Version"
+    required: false
+    default: "1.20.0"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Syft
+      shell: bash
+      run: |
+        ${{ github.action_path }}/install_syft.sh "${{ inputs.architecture }}"
+      env:
+        VERSION: ${{ inputs.version }}

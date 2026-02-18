@@ -1,0 +1,48 @@
+name: "Publish Helm Chart"
+description: "Publishes Helm Chart as OCI artifact to registry"
+
+inputs:
+  releaseVersion:
+    description: "Release version (e.g., 0.45.0)"
+    required: true
+  helmChartName:
+    description: "Name of the Helm Chart to be published"
+    required: true
+  artifactSuffix:
+    description: "Suffix of archive with images"
+    required: true
+  containerRegistry:
+    description: "Container registry for Helm OCI artifacts (e.g., quay.io, ghcr.io)"
+    required: false
+    default: "quay.io"
+  containerOrg:
+    description: "Container organization/namespace for Helm charts"
+    required: false
+    default: "strimzi-helm"
+  registryUser:
+    description: "Container registry username"
+    required: true
+  registryPassword:
+    description: "Container registry password"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download release artifacts
+      uses: actions/download-artifact@v7
+      with:
+        name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+        path: ./
+
+    - name: Extract release artifacts
+      shell: bash
+      run: tar -xvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+
+    - name: Login to OCI registry
+      shell: bash
+      run: helm registry login -u ${{ inputs.registryUser }} -p ${{ inputs.registryPassword }} ${{ inputs.containerRegistry }}
+
+    - name: Push Helm Chart to OCI registry
+      shell: bash
+      run: helm push ${{ inputs.helmChartName }}-${{ inputs.releaseVersion }}.tgz oci://${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}

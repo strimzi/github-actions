@@ -1,0 +1,341 @@
+name: Test Dependency Actions
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - "main"
+      # TODO - Remove this after testing
+      - "extract-actions"
+    tags:
+      - "*"
+
+# Declare default permissions as read only
+permissions:
+  contents: read
+
+# Cancel previous builds on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-install-docker:
+    name: Test install-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-docker action
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Verify Docker installation
+        run: |
+          docker --version
+          docker buildx version
+
+          # Verify buildx supports expected platforms
+          # Use 'docker buildx inspect' instead of 'docker buildx ls' because ls truncates the platform list
+          BUILDX_PLATFORMS=$(docker buildx inspect --bootstrap | grep 'Platforms:')
+          echo "Buildx platforms:"
+          echo "${BUILDX_PLATFORMS}"
+          for platform in linux/amd64 linux/arm64 linux/ppc64le linux/s390x; do
+            echo -n "Checking ${platform}... "
+            echo "${BUILDX_PLATFORMS}" | grep -q "${platform}"
+            echo "OK"
+          done
+
+  test-install-helm:
+    name: Test install-helm
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        helmVersion:
+        - 'v3.20.0'
+        - 'v3.16.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-helm action
+        uses: ./.github/actions/dependencies/install-helm
+        with:
+          helmVersion: ${{ matrix.helmVersion }}
+
+      - name: Verify Helm version
+        run: |
+          which helm
+          INSTALLED=$(helm version --short)
+          echo "Installed Helm version: ${INSTALLED}"
+          echo "${INSTALLED}" | grep -q "${{ matrix.helmVersion }}"
+
+      - name: Verify Helm unittest plugin
+        run: |
+          helm plugin list
+          helm plugin list | grep -q unittest
+
+  test-install-shellcheck:
+    name: Test install-shellcheck
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - 'amd64'
+        version:
+          - '0.11.0'
+          - '0.10.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-shellcheck action
+        uses: ./.github/actions/dependencies/install-shellcheck
+        with:
+          architecture: ${{ matrix.architecture }}
+          version: ${{ matrix.version }}
+
+      - name: Verify shellcheck version
+        run: |
+          INSTALLED=$(shellcheck --version | grep '^version:' | awk '{print $2}')
+          echo "Installed shellcheck version: ${INSTALLED}"
+          [ "${INSTALLED}" = "${{ matrix.version }}" ]
+
+      - name: Verify shellcheck works
+        run: |
+          echo '#!/bin/bash' > test.sh
+          echo 'echo "test"' >> test.sh
+          shellcheck test.sh
+
+  test-install-syft:
+    name: Test install-syft
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - 'amd64'
+        version:
+          - '1.0.0'
+          - '1.20.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-syft action
+        uses: ./.github/actions/dependencies/install-syft
+        with:
+          architecture: ${{ matrix.architecture }}
+          version: ${{ matrix.version }}
+
+      - name: Verify syft version
+        run: |
+          INSTALLED=$(syft version | grep '^Version:' | awk '{print $2}' || syft version -o json | jq -r '.version' 2>/dev/null || syft --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "Installed syft version: ${INSTALLED}"
+          echo "${INSTALLED}" | grep -q "${{ matrix.version }}"
+
+  test-install-yq:
+    name: Test install-yq
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - 'amd64'
+        version:
+          - 'v4.6.3'
+          - 'v4.52.2'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run install-yq action
+        uses: ./.github/actions/dependencies/install-yq
+        with:
+          architecture: ${{ matrix.architecture }}
+          version: ${{ matrix.version }}
+
+      - name: Verify yq version
+        run: |
+          INSTALLED=$(yq --version)
+          echo "Installed yq: ${INSTALLED}"
+          # Strip 'v' prefix as older yq versions don't include it in output
+          EXPECTED=$(echo "${{ matrix.version }}" | sed 's/^v//')
+          echo "${INSTALLED}" | grep -q "${EXPECTED}"
+
+  test-setup-java:
+    name: Test setup-java
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        javaVersion: ['17', '21']
+        mavenVersion: ['3.9.9', '3.8.8']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup-java action
+        uses: ./.github/actions/dependencies/setup-java
+        with:
+          javaVersion: ${{ matrix.javaVersion }}
+          mavenVersion: ${{ matrix.mavenVersion }}
+
+      - name: Verify Java version
+        run: |
+          java -version
+          INSTALLED=$(java -version 2>&1 | head -1)
+          echo "Installed Java: ${INSTALLED}"
+          echo "${INSTALLED}" | grep -q '"${{ matrix.javaVersion }}\.'
+
+      - name: Verify Maven version
+        run: |
+          INSTALLED=$(mvn --version | head -1)
+          echo "Installed Maven: ${INSTALLED}"
+          echo "${INSTALLED}" | grep -q "${{ matrix.mavenVersion }}"
+
+  test-setup-kind:
+    name: Test setup-kind (${{ matrix.kindNodeImage }}, ${{ matrix.controlNodes }}/${{ matrix.workerNodes }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kindNodeImage: latest
+            controlNodes: 1
+            workerNodes: 1
+            expectedK8sVersion: "1.35"
+          - kindNodeImage: oldest
+            controlNodes: 1
+            workerNodes: 1
+            expectedK8sVersion: "1.30"
+          - kindNodeImage: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f # 1.35.0 for Kind 0.31
+            controlNodes: 1
+            workerNodes: 2
+            expectedK8sVersion: "1.35"
+          - kindNodeImage: latest
+            controlNodes: 3
+            workerNodes: 3
+            expectedK8sVersion: "1.35"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup-kind action
+        uses: ./.github/actions/dependencies/setup-kind
+        with:
+          controlNodes: ${{ matrix.controlNodes }}
+          workerNodes: ${{ matrix.workerNodes }}
+        env:
+          KIND_NODE_IMAGE: ${{ matrix.kindNodeImage }}
+
+      - name: Verify Kind installation
+        run: kind version
+
+      - name: Verify Kubernetes version
+        run: |
+          SERVER_VERSION=$(kubectl version -o json | jq -r '.serverVersion.gitVersion')
+          echo "Kubernetes server version: ${SERVER_VERSION}"
+          echo "${SERVER_VERSION}" | grep -q "v${{ matrix.expectedK8sVersion }}"
+
+      - name: Verify cluster is healthy
+        run: |
+          kubectl cluster-info
+          kubectl get nodes -o wide
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
+      - name: Verify node count and roles
+        run: |
+          EXPECTED_TOTAL=$(( ${{ matrix.controlNodes }} + ${{ matrix.workerNodes }} ))
+          ACTUAL_TOTAL=$(kubectl get nodes --no-headers | wc -l)
+          echo "Expected ${EXPECTED_TOTAL} nodes, got ${ACTUAL_TOTAL}"
+          [ "${ACTUAL_TOTAL}" -eq "${EXPECTED_TOTAL}" ]
+
+          ACTUAL_CONTROL=$(kubectl get nodes --no-headers -l node-role.kubernetes.io/control-plane | wc -l)
+          echo "Expected ${{ matrix.controlNodes }} control-plane nodes, got ${ACTUAL_CONTROL}"
+          [ "${ACTUAL_CONTROL}" = "${{ matrix.controlNodes }}" ]
+
+          ACTUAL_WORKERS=$(kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' | wc -l)
+          echo "Expected ${{ matrix.workerNodes }} worker nodes, got ${ACTUAL_WORKERS}"
+          [ "${ACTUAL_WORKERS}" = "${{ matrix.workerNodes }}" ]
+
+      - name: Verify rack-key labels on all nodes
+        run: |
+          for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+            LABEL=$(kubectl get node "${node}" -o jsonpath='{.metadata.labels.rack-key}')
+            echo "Node ${node}: rack-key=${LABEL}"
+            [ "${LABEL}" = "zone" ]
+          done
+
+      - name: Verify cloud-provider-kind is running
+        run: |
+          docker ps --filter name=cloud-provider-kind --format '{{.Names}}' | grep -q cloud-provider-kind
+          echo "cloud-provider-kind container is running"
+
+      - name: Verify local registry is running and accessible
+        run: |
+          docker ps --filter name=kind-registry --format '{{.Names}}' | grep -q kind-registry
+          echo "kind-registry container is running"
+
+          REGISTRY="${DOCKER_REGISTRY}"
+          echo "Registry address: ${REGISTRY}"
+
+          # Tag and push a small image to the local registry
+          docker pull busybox:latest
+          docker tag busybox:latest "${REGISTRY}/test-image:latest"
+          docker push "${REGISTRY}/test-image:latest"
+          echo "Successfully pushed test image to local registry"
+
+      - name: Verify registry is accessible from inside the cluster
+        run: |
+          REGISTRY="${DOCKER_REGISTRY}"
+
+          # Run a pod that pulls the test image from the local registry
+          kubectl run registry-test \
+            --image="${REGISTRY}/test-image:latest" \
+            --restart=Never \
+            --command -- sh -c "echo registry-ok"
+          kubectl wait --for=condition=Ready pod/registry-test --timeout=60s || true
+          kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/registry-test --timeout=60s
+
+          LOGS=$(kubectl logs registry-test)
+          echo "Pod logs: ${LOGS}"
+          [ "${LOGS}" = "registry-ok" ]
+          echo "Registry is accessible from inside the cluster"
+
+  test-setup-minikube:
+    name: Test setup-minikube
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        minikubeVersion:
+          - 'v1.38.0'
+          - 'latest'
+        kubeVersion:
+          - 'v1.30.0'
+          - 'v1.35.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup-minikube action
+        uses: ./.github/actions/dependencies/setup-minikube
+        with:
+          minikubeVersion: ${{ matrix.minikubeVersion }}
+          kubeVersion: ${{ matrix.kubeVersion }}
+
+      - name: Verify Minikube installation
+        run: |
+          minikube version
+
+      - name: Verify Kubernetes version
+        run: |
+          SERVER_VERSION=$(kubectl version -o json | jq -r '.serverVersion.gitVersion')
+          echo "Kubernetes server version: ${SERVER_VERSION}"
+          echo "${SERVER_VERSION}" | grep -q "${{ matrix.kubeVersion }}"
+
+      - name: Verify cluster is healthy
+        run: |
+          kubectl cluster-info
+          kubectl get nodes -o wide
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
+      - name: Verify registry is accessible
+        run: |
+          echo "DOCKER_REGISTRY=${DOCKER_REGISTRY}"
+          # Push a test image to the minikube registry
+          docker pull busybox:latest
+          docker tag busybox:latest localhost:5000/test-image:latest
+          docker push localhost:5000/test-image:latest
+          echo "Successfully pushed test image to minikube registry"

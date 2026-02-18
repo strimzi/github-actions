@@ -1,0 +1,45 @@
+name: "Release Artifacts"
+description: "Build release artifacts using Makefile and optionally deploy to Maven Central"
+
+inputs:
+  releaseVersion:
+    description: "Release version (e.g., 1.5.0)"
+    required: true
+  artifactSuffix:
+    description: "Suffix of archive with images"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore Maven cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Build release artifacts
+      shell: bash
+      run: make release
+      env:
+        RELEASE_VERSION: ${{ inputs.releaseVersion }}
+        MVN_ARGS: '-B -DskipTests'
+
+    - name: Create release tarball
+      shell: bash
+      run: |
+        # Find all release artifacts and create tarball
+        # This will include .tar.gz, .zip, .tgz (Helm charts), and any other release files
+        find . -type f \( -name "*${{ inputs.releaseVersion }}*.tar.gz" -o \
+                          -name "*${{ inputs.releaseVersion }}*.zip" -o \
+                          -name "*${{ inputs.releaseVersion }}*.tgz" \) \
+          -exec tar -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v5
+      with:
+        name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+        path: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+        retention-days: 30

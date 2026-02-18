@@ -1,0 +1,68 @@
+name: "Deploy Java Artifacts"
+description: "Deploys Java artifacts to Maven Central"
+
+inputs:
+  modules:
+    description: "Maven modules to be uploaded"
+    required: true
+  artifactSuffix:
+    description: "Suffix of archive with images"
+    required: true
+  gpgPassphrase:
+    description: "GPG passphrase for signing"
+    required: true
+  gpgSigningKey:
+    description: "GPG signing key"
+    required: true
+  centralUsername:
+    description: "Maven Central username"
+    required: true
+  centralPassword:
+    description: "Maven Central password"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore Maven cache
+      uses: actions/cache/restore@v5
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Download binaries artifact
+      uses: actions/download-artifact@v7
+      with:
+        name: binaries-${{ inputs.artifactSuffix }}.tar
+        path: ./
+
+    - name: Extract binaries artifact
+      shell: bash
+      run: |
+        # Extract the tarball preserving directory structure
+        # This restores:
+        #   - target/ directories with all build outputs
+        #   - Multi-module project structure
+        tar -xvf binaries-${{ inputs.artifactSuffix }}.tar
+
+        # Remove the tarball to clean up
+        rm binaries-${{ inputs.artifactSuffix }}.tar
+
+        # Verify extraction
+        echo "Extracted structure:"
+        find . -name "pom.xml" -o -type d -name "target" | head -20
+
+    - name: Deploy Java artifacts
+      shell: bash
+      run: ${{ github.action_path }}/push-to-central.sh
+      env:
+        BUILD_REASON: "IndividualCI"
+        BRANCH: ${{ github.ref }}
+        GPG_PASSPHRASE: ${{ inputs.gpgPassphrase }}
+        GPG_SIGNING_KEY: ${{ inputs.gpgSigningKey }}
+        CENTRAL_USERNAME: ${{ inputs.centralUsername }}
+        CENTRAL_PASSWORD: ${{ inputs.centralPassword }}
+        SETTINGS_PATH: ${{ github.action_path }}/settings.xml
+        MODULES: ${{ inputs.modules }}
