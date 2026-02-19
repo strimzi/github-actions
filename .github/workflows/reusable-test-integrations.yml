@@ -173,7 +173,6 @@ jobs:
         uses: ./.github/actions/build/deploy-java
         with:
           modules: ${{ inputs.modules }}
-          artifactSuffix: "${{ inputs.artifactSuffix }}"
           gpgPassphrase: "test-passphrase"
           gpgSigningKey: ${{ env.GPG_SIGNING_KEY }}
           centralUsername: "admin"
