@@ -96,6 +96,10 @@ runs:
         DOCKER_TAG: ${{ inputs.containerTag }}
 
     - name: Sign container manifests
+      # This condition is required for properly running the tests
+      # The keyless signing doesn't work on pull_requests events so this part will be tested only during push events
+      # It shouldn't affect the usage in Strimzi projects as images are always pushed and signed during push or workflow_dispatch events
+      if: ${{ github.event_name != 'pull_request' }}
       shell: bash
       run: make docker_gha_sign_manifest
       env:
@@ -108,6 +112,10 @@ runs:
         DOCKER_TAG: ${{ inputs.containerTag }}
 
     - name: Generate and sign SBOMs
+      # This condition is required for properly running the tests
+      # The keyless signing doesn't work on pull_requests events so this part will be tested only during push events
+      # It shouldn't affect the usage in Strimzi projects as images are always pushed and signed during push or workflow_dispatch events
+      if: ${{ github.event_name != 'pull_request' }}
       shell: bash
       run: |
         IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
@@ -124,10 +132,18 @@ runs:
         DOCKER_TAG: ${{ inputs.containerTag }}
 
     - name: Create SBOM archive
+      # This condition is required for properly running the tests
+      # The keyless signing doesn't work on pull_requests events so this part will be tested only during push events
+      # It shouldn't affect the usage in Strimzi projects as images are always pushed and signed during push or workflow_dispatch events
+      if: ${{ github.event_name != 'pull_request' }}
       shell: bash
       run: tar -z -C ./sbom/ -cvpf sbom.tar.gz ./
 
     - name: Upload SBOM artifact
+      # This condition is required for properly running the tests
+      # The keyless signing doesn't work on pull_requests events so this part will be tested only during push events
+      # It shouldn't affect the usage in Strimzi projects as images are always pushed and signed during push or workflow_dispatch events
+      if: ${{ github.event_name != 'pull_request' }}
       uses: actions/upload-artifact@v5
       with:
         name: SBOMs-${{ inputs.artifactSuffix }}-${{ inputs.containerTag }}.tar.gz
