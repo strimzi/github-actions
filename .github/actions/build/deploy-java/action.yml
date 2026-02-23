@@ -5,9 +5,6 @@ inputs:
   modules:
     description: "Maven modules to be uploaded"
     required: true
-  artifactSuffix:
-    description: "Suffix of archive with images"
-    required: true
   gpgPassphrase:
     description: "GPG passphrase for signing"
     required: true
@@ -31,28 +28,6 @@ runs:
         key: maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           maven-
-
-    - name: Download binaries artifact
-      uses: actions/download-artifact@v7
-      with:
-        name: binaries-${{ inputs.artifactSuffix }}.tar
-        path: ./
-
-    - name: Extract binaries artifact
-      shell: bash
-      run: |
-        # Extract the tarball preserving directory structure
-        # This restores:
-        #   - target/ directories with all build outputs
-        #   - Multi-module project structure
-        tar -xvf binaries-${{ inputs.artifactSuffix }}.tar
-
-        # Remove the tarball to clean up
-        rm binaries-${{ inputs.artifactSuffix }}.tar
-
-        # Verify extraction
-        echo "Extracted structure:"
-        find . -name "pom.xml" -o -type d -name "target" | head -20
 
     - name: Deploy Java artifacts
       shell: bash
