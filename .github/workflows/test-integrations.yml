@@ -7,8 +7,6 @@ on:
   push:
     branches:
       - "main"
-      # TODO - Remove this after testing
-      - "extract-actions"
     tags:
       - "*"
 
@@ -31,6 +29,7 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
+            ref: "main"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
@@ -44,6 +43,7 @@ jobs:
 
           # Kafka Bridge - Full pipeline with containers
           - repo: "strimzi/strimzi-kafka-bridge"
+            ref: "main"
             artifactSuffix: "kafka-bridge"
             architecture: "amd64"
             buildContainers: true
@@ -57,12 +57,13 @@ jobs:
 
           # Access Operator - Full pipeline with containers
           - repo: "strimzi/kafka-access-operator"
+            ref: "main"
             artifactSuffix: "access-operator"
             architecture: "amd64"
             buildContainers: true
             modules: "./,api"
             nexusCheck: "kafka-access-operator"
-            javaVersion: "17"
+            javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesDir: "access-operator-container-amd64.tar.gz"
@@ -70,6 +71,7 @@ jobs:
 
           # MQTT Bridge - Full pipeline with containers
           - repo: "strimzi/strimzi-mqtt-bridge"
+            ref: "main"
             artifactSuffix: "mqtt-bridge"
             architecture: "amd64"
             buildContainers: true
@@ -83,6 +85,7 @@ jobs:
 
           # Drain Cleaner - Full pipeline with containers and Helm
           - repo: "strimzi/drain-cleaner"
+            ref: "main"
             artifactSuffix: "drain-cleaner"
             architecture: "amd64"
             buildContainers: true
@@ -96,6 +99,7 @@ jobs:
 
           # Client Examples - Containers only (no Maven deploy)
           - repo: "strimzi/client-examples"
+            ref: "main"
             artifactSuffix: "client-examples"
             architecture: "amd64"
             buildContainers: true
@@ -109,12 +113,13 @@ jobs:
 
           # Test Clients - Containers only (no Maven deploy)
           - repo: "strimzi/test-clients"
+            ref: "main"
             artifactSuffix: "test-clients"
             architecture: "amd64"
             buildContainers: true
             modules: "none"
             nexusCheck: "none"
-            javaVersion: "17"
+            javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesDir: "test-clients-amd64.tar.gz"
@@ -122,6 +127,7 @@ jobs:
 
 #          # Metrics Reporter - Java only (no containers)
 #          - repo: "strimzi/metrics-reporter"
+#            ref: "main"
 #            artifactSuffix: "metrics-reporter"
 #            architecture: "amd64"
 #            buildContainers: false
@@ -134,7 +140,8 @@ jobs:
 #            clusterOperatorBuild: false
 
           # Kafka Quotas Plugin - Java only (no containers)
-          - repo: "strimzi/kafka-quotas-plugin"
+          - repo: "frawless/kafka-quotas-plugin"
+            ref: "fix-make-release"
             artifactSuffix: "kafka-quotas-plugin"
             architecture: "amd64"
             buildContainers: false
@@ -148,6 +155,7 @@ jobs:
 
 #          # Kafka Kubernetes Config Provider - Java only (no containers)
 #          - repo: "strimzi/kafka-kubernetes-config-provider"
+#            ref: "main"
 #            artifactSuffix: "kafka-kubernetes-config-provider"
 #            architecture: "amd64"
 #            buildContainers: false
@@ -161,6 +169,7 @@ jobs:
 
 #          # Kafka OAuth - Java only (no containers)
 #          - repo: "strimzi/strimzi-kafka-oauth"
+#            ref: "main"
 #            architecture: "amd64"
 #            artifactName: "oauth-binaries"
 #            modules: "./,oauth-common,oauth-client,oauth-server"
@@ -176,6 +185,7 @@ jobs:
     uses: ./.github/workflows/reusable-test-integrations.yml
     with:
       repo: ${{ matrix.project.repo }}
+      ref: ${{ matrix.project.ref }}
       architecture: ${{ matrix.project.architecture }}
       artifactSuffix: ${{ matrix.project.artifactSuffix }}
       buildContainers: ${{ matrix.project.buildContainers }}
