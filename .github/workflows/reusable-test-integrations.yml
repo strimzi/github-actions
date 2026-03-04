@@ -125,6 +125,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
 
       - name: Checkout github-actions
         uses: actions/checkout@v6
@@ -229,6 +230,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
 
       - name: Checkout github-actions
         uses: actions/checkout@v6
@@ -266,6 +268,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
 
       - name: Checkout github-actions
         uses: actions/checkout@v6
@@ -315,6 +318,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
 
       - name: Checkout github-actions
         uses: actions/checkout@v6
@@ -376,6 +380,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
 
       - name: Checkout github-actions
         uses: actions/checkout@v6

@@ -122,7 +122,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "test-clients-amd64.tar.gz"
+            imagesDir: "*-amd64.tar.gz"
             clusterOperatorBuild: false
 
 #          # Metrics Reporter - Java only (no containers)
