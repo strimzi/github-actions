@@ -111,20 +111,20 @@ jobs:
             imagesDir: "*-amd64.tar.gz"
             clusterOperatorBuild: false
 
-          # Test Clients - Containers only (no Maven deploy)
-          - repo: "strimzi/test-clients"
-            ref: "main"
-            artifactSuffix: "test-clients"
-            architecture: "amd64"
-            buildContainers: true
-            modules: "none"
-            nexusCheck: "none"
-            javaVersion: "21"
-            helmChartName: "none"
-            releaseVersion: "6.6.6"
-            imagesDir: "./docker-images/container-archives"
-            clusterOperatorBuild: false
-
+#          # Test Clients - Containers only (no Maven deploy)
+#          - repo: "strimzi/test-clients"
+#            ref: "main"
+#            artifactSuffix: "test-clients"
+#            architecture: "amd64"
+#            buildContainers: true
+#            modules: "none"
+#            nexusCheck: "none"
+#            javaVersion: "21"
+#            helmChartName: "none"
+#            releaseVersion: "6.6.6"
+#            imagesDir: "./docker-images/container-archives"
+#            clusterOperatorBuild: false
+#
 #          # Metrics Reporter - Java only (no containers)
 #          - repo: "strimzi/metrics-reporter"
 #            ref: "main"
