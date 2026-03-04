@@ -122,7 +122,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "*-amd64.tar.gz"
+            imagesDir: "./docker-images/container-archives"
             clusterOperatorBuild: false
 
 #          # Metrics Reporter - Java only (no containers)
