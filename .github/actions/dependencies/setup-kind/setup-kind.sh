@@ -46,7 +46,7 @@ function install_kubectl {
         TEST_KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
     fi
     curl -Lo kubectl https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl && chmod +x kubectl
-    sudo cp kubectl /usr/local/bin
+    sudo mv kubectl /usr/local/bin
 
     if is_podman; then
         sudo ln -sf /usr/local/bin/kubectl /usr/bin/kubectl

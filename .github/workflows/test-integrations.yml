@@ -107,19 +107,18 @@ jobs:
             imagesDir: "*-amd64.tar.gz"
             clusterOperatorBuild: false
 
-# Not compatible yet
-#          # Test Clients - Containers only (no Maven deploy)
-#          - repo: "strimzi/test-clients"
-#            artifactSuffix: "test-clients"
-#            architecture: "amd64"
-#            buildContainers: true
-#            modules: "none"
-#            nexusCheck: "none"
-#            javaVersion: "17"
-#            helmChartName: "none"
-#            releaseVersion: "6.6.6"
-#            imagesDir: "test-clients-amd64.tar.gz"
-#            clusterOperatorBuild: false
+          # Test Clients - Containers only (no Maven deploy)
+          - repo: "strimzi/test-clients"
+            artifactSuffix: "test-clients"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "none"
+            nexusCheck: "none"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "test-clients-amd64.tar.gz"
+            clusterOperatorBuild: false
 
 #          # Metrics Reporter - Java only (no containers)
 #          - repo: "strimzi/metrics-reporter"
@@ -133,20 +132,20 @@ jobs:
 #            releaseVersion: "6.6.6"
 #            imagesDir: "none"
 #            clusterOperatorBuild: false
-#
-#          # Kafka Quotas Plugin - Java only (no containers)
-#          - repo: "strimzi/kafka-quotas-plugin"
-#            artifactSuffix: "kafka-quotas-plugin"
-#            architecture: "amd64"
-#            buildContainers: false
-#            modules: "./"
-#            nexusCheck: "kafka-quotas-plugin"
-#            javaVersion: "17"
-#            helmChartName: "none"
-#            releaseVersion: "6.6.6"
-#            imagesDir: "none"
-#            clusterOperatorBuild: false
-#
+
+          # Kafka Quotas Plugin - Java only (no containers)
+          - repo: "strimzi/kafka-quotas-plugin"
+            artifactSuffix: "kafka-quotas-plugin"
+            architecture: "amd64"
+            buildContainers: false
+            modules: "./"
+            nexusCheck: "kafka-quotas-plugin"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "none"
+            clusterOperatorBuild: false
+
 #          # Kafka Kubernetes Config Provider - Java only (no containers)
 #          - repo: "strimzi/kafka-kubernetes-config-provider"
 #            artifactSuffix: "kafka-kubernetes-config-provider"
