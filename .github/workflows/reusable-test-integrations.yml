@@ -51,6 +51,11 @@ on:
         description: "Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
         required: false
         type: boolean
+      githubActionsRef:
+        description: "Ref of strimzi/github-actions to use (tag, branch, or SHA). Leave empty for local calls within github-actions repo."
+        required: false
+        type: string
+        default: ""
 
 # Declare default permissions as read only
 permissions:
@@ -72,6 +77,8 @@ jobs:
       - name: Checkout github-actions
         uses: actions/checkout@v6
         with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
 
       - name: Setup actions for testing
@@ -130,6 +137,8 @@ jobs:
       - name: Checkout github-actions
         uses: actions/checkout@v6
         with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
 
       - name: Setup Nexus
@@ -235,6 +244,8 @@ jobs:
       - name: Checkout github-actions
         uses: actions/checkout@v6
         with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
 
       - name: Setup actions for testing
@@ -273,6 +284,8 @@ jobs:
       - name: Checkout github-actions
         uses: actions/checkout@v6
         with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
 
       - name: Setup actions for testing
@@ -323,6 +336,8 @@ jobs:
       - name: Checkout github-actions
         uses: actions/checkout@v6
         with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
 
       - name: Setup actions for testing
@@ -385,6 +400,8 @@ jobs:
       - name: Checkout github-actions
         uses: actions/checkout@v6
         with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
 
       - name: Setup actions for testing
