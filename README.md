@@ -72,6 +72,7 @@ End-to-end integration tests that run the full build pipeline (build binaries, d
 - strimzi-mqtt-bridge
 - drain-cleaner
 - client-examples
+- kafka-quotas-plugin
 
 > [!WARNING]
 > The rest of Strimzi repositories are not compatible yet and will be added in the future.
@@ -86,6 +87,68 @@ Reference actions from another Strimzi repository:
     controlNodes: 1
     workerNodes: 3
 ```
+
+## Cross-repo testing
+
+With shared repository with our specific actions we unfortunately have chicken-egg problem for several parts of the build process.
+In case we do update `push-container` or `release` flows in respective repositories, we are not able to catch issues during the PRs with current checks.
+The result will be shown only in tests within `github-actions` repository, because it tests flow for all parts of build process.
+To mitigate this, we have to run the same integration tests we have in this repository also in other repositories, just with different configurations.
+
+The main difference is in `githubActionsRef` parameter.
+This parameter says which branch of `github-actions` repo will be used for running the tests which should align with branch or version used in build/release workflows.
+So for example in case we use version `1.0.0` in build workflow, we should keep the same in the tests to ensure that current actions will work with new changes.
+
+The following code snippet shows the workflow for Bridge repository:
+
+```yaml
+name: Test github-actions integration
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-github-actions-integration:
+    uses: strimzi/github-actions/.github/workflows/reusable-test-integrations.yml@main
+    with:
+      repo: ${{ github.repository }}
+      ref: ${{ github.sha }}
+      architecture: "amd64"
+      artifactSuffix: "kafka-bridge"
+      buildContainers: true
+      modules: "./"
+      nexusCheck: "kafka-bridge"
+      javaVersion: "17"
+      helmChartName: "none"
+      releaseVersion: "6.6.6"
+      imagesDir: "kafka-bridge-amd64.tar.gz"
+      clusterOperatorBuild: false
+      githubActionsRef: "1.0.0"
+    secrets: inherit
+```
+
+## Versioning
+
+Once we will agree that actions are in stable state we will create first branch/tag to freeze the state.
+This branch/tag will be then used in other repositories to freeze actions version to avoid potential issues with failures.
+At this point, each repository should implement the testing workflow described above.
+
+> [!WARNING]
+> To ensure that actions will remain functional across the whole project, we have to ensure compatibility between N and N-1 versions of github-actions repository.
+> This has to be honored by every change done after the first branch/tag (release) freeze!
 
 ## License
 
