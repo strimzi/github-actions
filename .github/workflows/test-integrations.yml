@@ -111,33 +111,33 @@ jobs:
             imagesDir: "*-amd64.tar.gz"
             clusterOperatorBuild: false
 
-#          # Test Clients - Containers only (no Maven deploy)
-#          - repo: "strimzi/test-clients"
-#            ref: "main"
-#            artifactSuffix: "test-clients"
-#            architecture: "amd64"
-#            buildContainers: true
-#            modules: "none"
-#            nexusCheck: "none"
-#            javaVersion: "21"
-#            helmChartName: "none"
-#            releaseVersion: "6.6.6"
-#            imagesDir: "./docker-images/container-archives"
-#            clusterOperatorBuild: false
-#
-#          # Metrics Reporter - Java only (no containers)
-#          - repo: "strimzi/metrics-reporter"
-#            ref: "main"
-#            artifactSuffix: "metrics-reporter"
-#            architecture: "amd64"
-#            buildContainers: false
-#            modules: "./"
-#            nexusCheck: "metrics-reporter"
-#            javaVersion: "17"
-#            helmChartName: "none"
-#            releaseVersion: "6.6.6"
-#            imagesDir: "none"
-#            clusterOperatorBuild: false
+          # Test Clients - Containers only (no Maven deploy)
+          - repo: "strimzi/test-clients"
+            ref: "main"
+            artifactSuffix: "test-clients"
+            architecture: "amd64"
+            buildContainers: true
+            modules: "none"
+            nexusCheck: "none"
+            javaVersion: "21"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "./docker-images/container-archives"
+            clusterOperatorBuild: false
+
+          # Metrics Reporter - Java only (no containers)
+          - repo: "strimzi/metrics-reporter"
+            ref: "main"
+            artifactSuffix: "metrics-reporter"
+            architecture: "amd64"
+            buildContainers: false
+            modules: "./"
+            nexusCheck: "metrics-reporter"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "none"
+            clusterOperatorBuild: false
 
           # Kafka Quotas Plugin - Java only (no containers)
           - repo: "strimzi/kafka-quotas-plugin"
@@ -153,34 +153,33 @@ jobs:
             imagesDir: "none"
             clusterOperatorBuild: false
 
-#          # Kafka Kubernetes Config Provider - Java only (no containers)
-#          - repo: "strimzi/kafka-kubernetes-config-provider"
-#            ref: "main"
-#            artifactSuffix: "kafka-kubernetes-config-provider"
-#            architecture: "amd64"
-#            buildContainers: false
-#            modules: "./"
-#            nexusCheck: "kafka-kubernetes-config-provider"
-#            javaVersion: "17"
-#            helmChartName: "none"
-#            releaseVersion: "6.6.6"
-#            imagesDir: "none"
-#            clusterOperatorBuild: false
+          # Kafka Kubernetes Config Provider - Java only (no containers)
+          - repo: "strimzi/kafka-kubernetes-config-provider"
+            ref: "main"
+            artifactSuffix: "kafka-kubernetes-config-provider"
+            architecture: "amd64"
+            buildContainers: false
+            modules: "./"
+            nexusCheck: "kafka-kubernetes-config-provider"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "none"
+            clusterOperatorBuild: false
 
-#          # Kafka OAuth - Java only (no containers)
-#          - repo: "strimzi/strimzi-kafka-oauth"
-#            ref: "main"
-#            architecture: "amd64"
-#            artifactName: "oauth-binaries"
-#            modules: "./,oauth-common,oauth-client,oauth-server"
-#            nexusCheck: "oauth-common"
-#            javaVersion: "17"
-#            helmChartName: "none"
-#            releaseVersion: "6.6.6"
-#            imagesDir: ""
-#            containersArchiveName: ""
-#            releaseArtifactName: "oauth-release"
-#            clusterOperatorBuild: false
+          # Kafka OAuth - Java only (no containers)
+          - repo: "strimzi/strimzi-kafka-oauth"
+            ref: "main"
+            artifactSuffix: "kafka-oauth"
+            architecture: "amd64"
+            buildContainers: false
+            modules: "./,oauth-common,oauth-client,oauth-server"
+            nexusCheck: "oauth-common"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "none"
+            clusterOperatorBuild: false
     
     uses: ./.github/workflows/reusable-test-integrations.yml
     with:
