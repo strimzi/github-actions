@@ -8,6 +8,10 @@
 
 Shared GitHub Actions and CI workflows used across [Strimzi](https://strimzi.io/) repositories.
 
+> [!IMPORTANT]
+> All the actions within this repository are designed for internal usage within Strimzi projects.
+> We do not support usage of the actions outside the Strimzi organization.
+
 ## Actions
 
 ### Dependency Actions
