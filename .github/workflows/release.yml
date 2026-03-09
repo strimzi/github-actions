@@ -21,7 +21,9 @@ jobs:
       - name: Validate branch
         id: branch
         run: |
-          BRANCH="${GITHUB_REF_NAME}"
+          BRANCH="${{ github.ref_name }}"
+          
+          echo "Validating branch: ${BRANCH}"
           if [[ ! "$BRANCH" =~ ^release-([0-9]+)\.x$ ]]; then
             echo "::error::Must run on a release-X.x branch (e.g., release-1.x)"
             exit 1
