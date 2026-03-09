@@ -1,5 +1,6 @@
 [![Build Status - dependencies](https://github.com/strimzi/github-actions/actions/workflows/test-dependencies.yml/badge.svg)](https://github.com/strimzi/github-actions/actions/workflows/test-dependencies.yml)
 [![Build Status - integrations](https://github.com/strimzi/github-actions/actions/workflows/test-integrations.yml/badge.svg)](https://github.com/strimzi/github-actions/actions/workflows/test-integrations.yml)
+[![Build Status - utils](https://github.com/strimzi/github-actions/actions/workflows/test-utils.yml/badge.svg)](https://github.com/strimzi/github-actions/actions/workflows/test-utils.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Twitter Follow](https://img.shields.io/twitter/follow/strimziio?style=social)](https://twitter.com/strimziio)
 
@@ -46,6 +47,16 @@ Actions for building, testing, and releasing Strimzi components.
 > [!IMPORTANT]
 > The `build-binaries` action supports an `clusterOperatorBuild` input (default `false`) that enables Strimzi Kafka Operator specific build steps — Helm chart generation, CRD distribution, dashboard setup, documentation checks, and uncommitted changes verification.
 > Other repositories should leave this disabled.
+
+### Utils Actions
+
+Actions used as utils mostly in operators repository.
+
+| Action                     | Description                                                               | Key Inputs |
+|----------------------------|---------------------------------------------------------------------------|------------|
+| `utils/check-permissions`  | Check whether users who leave the comment has rights to trigger actions   | none       |
+| `utils/determine-ref`      | Determine checkout ref based on PR metadata                               | none       |
+| `utils/should-run`         | Determine whether STs pipeline should be run or not based on comment body | none       |
 
 ## Test Workflows
 
