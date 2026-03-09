@@ -1,0 +1,20 @@
+{
+  "event_name": "pull_request",
+  "action": "opened",
+  "pull_request": {
+    "number": 42,
+    "title": "Test PR",
+    "head": {
+      "ref": "feature-123",
+      "sha": "1111111111111111111111111111111111111111",
+      "repo": {
+        "name": "test-repo",
+        "owner": { "login": "batman" }
+      }
+    }
+  },
+  "repository": {
+    "name": "test-repo",
+    "owner": { "login": "batman" }
+  }
+}
