@@ -1,0 +1,42 @@
+scenarios:
+  - id: workflow-dispatch
+    description: "Workflow dispatch should always run"
+    event: workflow_dispatch
+    fixture: .github/tests/events/should-run/dispatch_default.json
+    expectations:
+      should_run: "true"
+
+  - id: pull-request
+    description: "Pull request should always run"
+    event: pull_request
+    fixture: .github/tests/events/should-run/pull_request.json
+    expectations:
+      should_run: "true"
+
+  - id: issue-comment-trigger
+    description: "Issue comment with /gha run trigger should run"
+    event: issue_comment
+    fixture: .github/tests/events/should-run/issue_comment_trigger.json
+    expectations:
+      should_run: "true"
+
+  - id: issue-comment-no-trigger
+    description: "Issue comment without trigger phrase should not run"
+    event: issue_comment
+    fixture: .github/tests/events/should-run/issue_comment_no_trigger.json
+    expectations:
+      should_run: "false"
+
+  - id: issue-comment-closed-pr
+    description: "Issue comment on closed PR should not run"
+    event: issue_comment
+    fixture: .github/tests/events/should-run/issue_comment_closed_pr.json
+    expectations:
+      should_run: "false"
+
+  - id: issue-comment-closed-issue
+    description: "Issue comment on closed issue (not a PR) should not run"
+    event: issue_comment
+    fixture: .github/tests/events/should-run/issue_comment_closed_issue.json
+    expectations:
+      should_run: "false"
