@@ -31,10 +31,10 @@ The release is performed via the **Release** workflow (`release.yml`), triggered
 
 ### Inputs
 
-| Input         | Required | Description                                                                                                |
-|---------------|----------|------------------------------------------------------------------------------------------------------------|
-| `version`     | No       | Release version (e.g., `1.3`). If empty, the minor version is auto-incremented from the latest `vX.Y` tag. |
-| `description` | No       | Custom release description prepended before the auto-generated changelog.                                  |
+| Input         | Required | Description                                                                                                                                                                           |
+|---------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `version`     | No       | Release version (e.g., `1.3`). If empty, the minor version is auto-incremented from the latest `vX.Y` tag. Note that `v` is prepended autoamtically and shouldn't be in input string. |
+| `description` | No       | Custom release description prepended before the auto-generated changelog.                                                                                                             |
 
 ### Auto-increment behavior
 
