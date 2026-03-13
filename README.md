@@ -8,6 +8,10 @@
 
 Shared GitHub Actions and CI workflows used across [Strimzi](https://strimzi.io/) repositories.
 
+> [!IMPORTANT]
+> All the actions within this repository are designed for internal usage within Strimzi projects.
+> We do not support usage of the actions outside the Strimzi organization.
+
 ## Actions
 
 ### Dependency Actions
@@ -153,13 +157,13 @@ jobs:
 
 ## Versioning
 
-Once we will agree that actions are in stable state we will create first branch/tag to freeze the state.
-This branch/tag will be then used in other repositories to freeze actions version to avoid potential issues with failures.
-At this point, each repository should implement the testing workflow described above.
+This repository uses `vX.Y` release tags (e.g., `v1.0`, `v1.3`) with floating `vX` major tags that always point to the latest release within a major version.
+Releases are created from `release-X.x` branches using an automated workflow.
+See [RELEASE.md](RELEASE.md) for full details on the versioning scheme and release process.
 
 > [!WARNING]
-> To ensure that actions will remain functional across the whole project, we have to ensure compatibility between N and N-1 versions of github-actions repository.
-> This has to be honored by every change done after the first branch/tag (release) freeze!
+> To ensure that actions remain functional across all Strimzi projects, compatibility between N and N-1 versions of the `github-actions` repository must be maintained.
+> This must be honored by every change made after the first release.
 
 ## License
 
