@@ -67,7 +67,7 @@ runs:
       run: "tar -cvpf containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar ${{ inputs.imagesDir }}"
 
     - name: Upload containers artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar
         path: containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar
