@@ -38,7 +38,7 @@ runs:
           -exec tar -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
 
     - name: Upload release artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
         path: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
