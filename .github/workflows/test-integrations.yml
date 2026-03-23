@@ -63,7 +63,7 @@ jobs:
             modules: "./,api"
             nexusCheck: "kafka-access-operator"
             javaVersion: "21"
-            helmChartName: "none"
+            helmChartName: "strimzi-access-operator-helm-3-chart"
             releaseVersion: "6.6.6"
             imagesDir: "access-operator-container-amd64.tar.gz"
             clusterOperatorBuild: false
@@ -172,7 +172,7 @@ jobs:
             artifactSuffix: "kafka-oauth"
             architecture: "amd64"
             buildContainers: false
-            modules: "./,oauth-common,oauth-client,oauth-server"
+            modules: "!examples/producer','!examples/consumer"
             nexusCheck: "kafka-oauth-common"
             javaVersion: "17"
             helmChartName: "none"
