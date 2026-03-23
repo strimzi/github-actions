@@ -26,6 +26,10 @@ inputs:
     description: "Version of kind cloud-provider image"
     required: false
     default: 0.6.0
+  installOlm:
+    description: "Determines if OLM should be installed on Kind"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -80,6 +84,7 @@ runs:
         WORKER_NODES: ${{ inputs.workerNodes }}
         KIND_CLOUD_PROVIDER_VERSION: v${{ inputs.cloudProviderVersion }}
         KIND_VERSION: v${{ inputs.kindVersion }}
+        INSTALL_OLM: ${{ inputs.installOlm }}
 
     - name: Set DOCKER_REGISTRY
       shell: bash

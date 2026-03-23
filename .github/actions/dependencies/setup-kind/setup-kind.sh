@@ -41,6 +41,10 @@ function is_podman() {
     [[ "$DOCKER_CMD" == "podman" ]]
 }
 
+function should_install_olm() {
+    [[ "$INSTALL_OLM" == "true" ]]
+}
+
 function install_kubectl {
     if [ "${TEST_KUBECTL_VERSION:-latest}" = "latest" ]; then
         TEST_KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
@@ -363,6 +367,35 @@ function configure_network {
     fi
 }
 
+: '
+@brief: Installs OLM related components to the cluster.
+@global:
+        INSTALL_OLM - environment variable determining if the OLM should be installed or not.
+@note: `operator-sdk` has to be installed before running this script (in case that INSTALL_OLM is set to `true`).
+'
+function setup_olm_on_cluster {
+  if should_install_olm; then
+      if ! operator-sdk --help >/dev/null 2>&1
+      then
+          echo "[ERROR] operator-sdk could not be found, be sure to install it before running this script with INSTALL_OLM set to true."
+          exit 1
+      fi
+
+      echo "[INFO] INSTALL_OLM is set to 'true', going to setup OLM on the cluster."
+      operator-sdk olm install
+
+      echo "[INFO] Checking if the OLM related Pods are app and running before proceeding"
+      if ! kubectl wait --for=condition=Ready pods -l app=olm-operator -n olm --timeout=120s && \
+          kubectl wait --for=condition=Ready pods -l app=catalog-operator -n olm --timeout=120s; then
+              echo "[ERROR] OLM pods did not become ready in time. Current state:"
+              kubectl get pods -n olm
+              exit 1
+      fi
+
+      echo "[INFO] OLM successfully configured on cluster."
+  fi
+}
+
 setup_kube_directory
 install_kubectl
 install_kubernetes_provisioner
@@ -453,3 +486,4 @@ fi
 create_cluster_role_binding_admin
 label_node
 run_cloud_provider_kind ${network_name}
+setup_olm_on_cluster
