@@ -389,6 +389,7 @@ function setup_olm_on_cluster {
           kubectl wait --for=condition=Ready pods -l app=catalog-operator -n olm --timeout=120s; then
               echo "[ERROR] OLM pods did not become ready in time. Current state:"
               kubectl get pods -n olm
+              kubectl get events -n olm
               exit 1
       fi
 
