@@ -50,7 +50,7 @@ jobs:
             nexusCheck: "kafka-bridge"
             javaVersion: "21"
             helmChartName: "none"
-            releaseVersion: "6.6.6"
+            releaseVersion: "6.6.6-rc1"
             imagesDir: "kafka-bridge-amd64.tar.gz"
             clusterOperatorBuild: false
 
