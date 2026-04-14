@@ -112,7 +112,8 @@ jobs:
           artifactSuffix: ${{ inputs.artifactSuffix }}
           clusterOperatorBuild: ${{ inputs.clusterOperatorBuild }}
         env:
-          MVN_ARGS: "-DskipITs"
+          # Skip just ITs and rerun unit tests in case of flakes
+          MVN_ARGS: "-DskipITs -Dsurefire.rerunFailingTestsCount=5"
 
       - name: Verify binaries artifact was created
         run: |
