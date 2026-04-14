@@ -200,6 +200,15 @@ jobs:
       - name: Install yq
         uses: ./.github/actions/dependencies/install-yq
 
+      # The central-publishing-maven-plugin creates a bundle zip for release versions
+      # and uploads via the Central Portal API, which local Nexus doesn't support.
+      # Setting a SNAPSHOT version forces direct artifact deployment instead.
+      # This is required for projects where we use release branches, and it is used only for testing purposes.
+      - name: Set SNAPSHOT version for testing
+        shell: bash
+        run: |
+          mvn versions:set -DnewVersion=${{ inputs.releaseVersion }}-SNAPSHOT -DgenerateBackupPoms=false
+
       - name: Deploy to local Maven repository using deploy-java action
         uses: ./.github/actions/build/deploy-java
         with:
