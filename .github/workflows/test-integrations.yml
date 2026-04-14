@@ -28,7 +28,7 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
-            ref: "main"
+            ref: "release-0.51.x"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
