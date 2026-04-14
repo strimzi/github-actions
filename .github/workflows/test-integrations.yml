@@ -43,7 +43,7 @@ jobs:
 
           # Kafka Bridge - Full pipeline with containers
           - repo: "strimzi/strimzi-kafka-bridge"
-            ref: "main"
+            ref: "release-1.0.x"
             artifactSuffix: "kafka-bridge"
             architecture: "amd64"
             buildContainers: true
