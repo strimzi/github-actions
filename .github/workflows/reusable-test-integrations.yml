@@ -107,8 +107,8 @@ jobs:
           artifactSuffix: ${{ inputs.artifactSuffix }}
           clusterOperatorBuild: ${{ inputs.clusterOperatorBuild }}
         env:
-          # Always skipTests during testing of the actions to save time
-          MVN_ARGS: "-B -DskipTests"
+          # Skip integration tests but let unit tests run to verify the test step works
+          MVN_ARGS: "-B -DskipITs"
 
       - name: Verify binaries artifact was created
         run: |
@@ -120,6 +120,17 @@ jobs:
           echo "Binaries artifact contents:"
           tar -tf binaries-${{ inputs.artifactSuffix }}.tar
           echo "✓ Binaries artifact created successfully"
+
+      - name: Verify test results exist
+        if: ${{ inputs.clusterOperatorBuild != true }}
+        shell: bash
+        run: |
+          REPORT_COUNT=$(find . -path "*/surefire-reports/TEST-*.xml" -type f | wc -l)
+          if [ "$REPORT_COUNT" -eq 0 ]; then
+            echo "No surefire test reports found - unit tests may not have run"
+            exit 1
+          fi
+          echo "✓ Found $REPORT_COUNT surefire test report(s)"
 
   test-deploy-java:
     name: Deploy to Maven
