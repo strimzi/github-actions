@@ -11,7 +11,7 @@ runs:
   steps:
     - name: Should Run
       id: should_run
-      uses: actions/github-script@v9
+      uses: actions/github-script@v8
       with:
         script: |
           const ev = context.eventName;
