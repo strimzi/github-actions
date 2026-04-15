@@ -51,6 +51,11 @@ on:
         description: "Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
         required: false
         type: boolean
+      checkTests:
+        description: "Flag whether unit tests should be run and verified during build (set to false for repos without tests)"
+        required: false
+        type: boolean
+        default: true
       githubActionsRef:
         description: "Ref of strimzi/github-actions to use (tag, branch, or SHA). Leave empty for local calls within github-actions repo."
         required: false
@@ -107,8 +112,8 @@ jobs:
           artifactSuffix: ${{ inputs.artifactSuffix }}
           clusterOperatorBuild: ${{ inputs.clusterOperatorBuild }}
         env:
-          # Always skipTests during testing of the actions to save time
-          MVN_ARGS: "-B -DskipTests"
+          # Skip just ITs and rerun unit tests in case of flakes
+          MVN_ARGS: "-DskipITs -Dsurefire.rerunFailingTestsCount=5"
 
       - name: Verify binaries artifact was created
         run: |
@@ -120,6 +125,17 @@ jobs:
           echo "Binaries artifact contents:"
           tar -tf binaries-${{ inputs.artifactSuffix }}.tar
           echo "✓ Binaries artifact created successfully"
+
+      - name: Verify test results exist
+        if: ${{ inputs.checkTests == true }}
+        shell: bash
+        run: |
+          REPORT_COUNT=$(find . -path "*/surefire-reports/TEST-*.xml" -type f | wc -l)
+          if [ "$REPORT_COUNT" -eq 0 ]; then
+            echo "No surefire test reports found - unit tests may not have run"
+            exit 1
+          fi
+          echo "✓ Found $REPORT_COUNT surefire test report(s)"
 
   test-deploy-java:
     name: Deploy to Maven
@@ -183,6 +199,15 @@ jobs:
 
       - name: Install yq
         uses: ./.github/actions/dependencies/install-yq
+
+      # The central-publishing-maven-plugin creates a bundle zip for release versions
+      # and uploads via the Central Portal API, which local Nexus doesn't support.
+      # Setting a SNAPSHOT version forces direct artifact deployment instead.
+      # This is required for projects where we use release branches, and it is used only for testing purposes.
+      - name: Set SNAPSHOT version for testing
+        shell: bash
+        run: |
+          mvn versions:set -DnewVersion=${{ inputs.releaseVersion }}-SNAPSHOT -DgenerateBackupPoms=false
 
       - name: Deploy to local Maven repository using deploy-java action
         uses: ./.github/actions/build/deploy-java

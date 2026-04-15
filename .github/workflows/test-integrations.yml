@@ -28,7 +28,7 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
-            ref: "main"
+            ref: "release-0.51.x"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
@@ -39,10 +39,11 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "./docker-images/container-archives"
             clusterOperatorBuild: true
+            checkTests: false
 
           # Kafka Bridge - Full pipeline with containers
           - repo: "strimzi/strimzi-kafka-bridge"
-            ref: "main"
+            ref: "release-1.0.x"
             artifactSuffix: "kafka-bridge"
             architecture: "amd64"
             buildContainers: true
@@ -53,6 +54,7 @@ jobs:
             releaseVersion: "6.6.6-rc1"
             imagesDir: "kafka-bridge-amd64.tar.gz"
             clusterOperatorBuild: false
+            checkTests: true
 
           # Access Operator - Full pipeline with containers
           - repo: "strimzi/kafka-access-operator"
@@ -67,6 +69,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "access-operator-container-amd64.tar.gz"
             clusterOperatorBuild: false
+            checkTests: true
 
           # MQTT Bridge - Full pipeline with containers
           - repo: "strimzi/strimzi-mqtt-bridge"
@@ -81,6 +84,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "mqtt-bridge-amd64.tar.gz"
             clusterOperatorBuild: false
+            checkTests: true
 
           # Drain Cleaner - Full pipeline with containers and Helm
           - repo: "strimzi/drain-cleaner"
@@ -95,8 +99,9 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "drain-cleaner-container-amd64.tar.gz"
             clusterOperatorBuild: false
+            checkTests: true
 
-          # Client Examples - Containers only (no Maven deploy)
+          # Client Examples - Containers only (no Maven deploy, no tests)
           - repo: "strimzi/client-examples"
             ref: "main"
             artifactSuffix: "client-examples"
@@ -109,6 +114,7 @@ jobs:
             releaseVersion: "none"
             imagesDir: "*-amd64.tar.gz"
             clusterOperatorBuild: false
+            checkTests: false
 
           # Test Clients - Containers only (no Maven deploy)
           - repo: "strimzi/test-clients"
@@ -123,6 +129,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "./docker-images/container-archives"
             clusterOperatorBuild: false
+            checkTests: true
 
           # Metrics Reporter - Java only (no containers)
           - repo: "strimzi/metrics-reporter"
@@ -137,6 +144,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "none"
             clusterOperatorBuild: false
+            checkTests: true
 
           # Kafka Quotas Plugin - Java only (no containers)
           - repo: "strimzi/kafka-quotas-plugin"
@@ -151,6 +159,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "none"
             clusterOperatorBuild: false
+            checkTests: true
 
           # Kafka Kubernetes Config Provider - Java only (no containers)
           - repo: "strimzi/kafka-kubernetes-config-provider"
@@ -165,6 +174,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "none"
             clusterOperatorBuild: false
+            checkTests: true
 
           # Kafka OAuth - Java only (no containers)
           - repo: "strimzi/strimzi-kafka-oauth"
@@ -179,6 +189,22 @@ jobs:
             releaseVersion: "6.6.6"
             imagesDir: "none"
             clusterOperatorBuild: false
+            checkTests: true
+
+          # Test Container - Java only (no containers)
+          - repo: "strimzi/test-container"
+            ref: "main"
+            artifactSuffix: "strimzi-test-container"
+            architecture: "amd64"
+            buildContainers: false
+            modules: "./"
+            nexusCheck: "strimzi-test-container"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesDir: "none"
+            clusterOperatorBuild: false
+            checkTests: true
     
     uses: ./.github/workflows/reusable-test-integrations.yml
     with:
@@ -194,4 +220,5 @@ jobs:
       releaseVersion: ${{ matrix.project.releaseVersion }}
       imagesDir: ${{ matrix.project.imagesDir }}
       clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild }}
+      checkTests: ${{ matrix.project.checkTests }}
     secrets: inherit
