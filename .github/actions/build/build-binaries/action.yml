@@ -105,7 +105,8 @@ runs:
           make java_install
 
     - name: Save Maven cache
-      if: ${{ inputs.mainJavaBuild == 'true' }}
+      # Save maven cache only after pushes into default branch
+      if: ${{ inputs.mainJavaBuild == 'true' && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
       uses: actions/cache/save@v5
       with:
         path: ~/.m2/repository
