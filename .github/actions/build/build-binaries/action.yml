@@ -99,7 +99,7 @@ runs:
     #############################################################
     - name: Run tests and verification
       # Tests for operators repo are in separated workflow and this is just a redundant step
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild != 'true' }}
       shell: bash
       run: |
           make java_install
