@@ -408,6 +408,23 @@ jobs:
           tar -tf "$TARBALL"
           echo "✓ Release artifacts created successfully"
 
+      # This check is currently only for Operators repo as yamls were missing in release tar ball
+      - name: Verify YAML release artifacts in tarball
+        if: ${{ inputs.clusterOperatorBuild == true }}
+        run: |
+          TARBALL="release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+
+          YAML_COUNT=$(tar -tf "$TARBALL" | grep -c '\.yaml$' || true)
+          if [ "$YAML_COUNT" -eq 0 ]; then
+            echo "Release tarball contents:"
+            tar -tf "$TARBALL"
+            echo "No YAML files found in release tarball for operator build"
+            exit 1
+          fi
+
+          echo "Found $YAML_COUNT YAML file(s) in release tarball:"
+          tar -tf "$TARBALL" | grep '\.yaml$'
+
   test-publish-helm:
     name: Publish Helm Charts
     if: ${{ inputs.helmChartName != 'none' }}
