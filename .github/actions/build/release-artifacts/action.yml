@@ -30,11 +30,10 @@ runs:
     - name: Create release tarball
       shell: bash
       run: |
-        # Find all release artifacts and create tarball
-        # This will include .tar.gz, .zip, .tgz (Helm charts), and any other release files
         find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
                           -iname "*${{ inputs.releaseVersion }}*.zip" -o \
-                          -iname "*${{ inputs.releaseVersion }}*.tgz" \) \
+                          -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
+                          -iname "*${{ inputs.releaseVersion }}*.yaml" \) \
           -exec tar -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
 
     - name: Upload release artifacts
