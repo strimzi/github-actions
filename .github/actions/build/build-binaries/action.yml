@@ -13,6 +13,10 @@ inputs:
     description: "Enable Strimzi Operator specific build steps (Helm charts install, CRDs install, dashboards install, docs checks, uncommitted changes check)"
     required: false
     default: "false"
+  checkReleasedFiles:
+    description: "Enable step for checking released files - using the `make release_files_check`"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -86,7 +90,7 @@ runs:
       run: "make shellcheck"
 
     - name: Check released files
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
+      if: ${{ inputs.clusterOperatorBuild == 'true' || inputs.checkReleasedFiles == 'true' }}
       shell: bash
       run: "make release_files_check"
 
