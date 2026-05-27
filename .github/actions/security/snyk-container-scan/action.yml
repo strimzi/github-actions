@@ -1,0 +1,130 @@
+name: "Snyk Container Scan"
+description: "Download container archive, discover images, and run Snyk container scan on each with SARIF upload and CVSS threshold check"
+
+inputs:
+  containerArtifact:
+    description: "Name of the container archive artifact to download"
+    required: true
+  cvssThreshold:
+    description: "Fail if any CVE has CVSS score above this value"
+    required: false
+    default: "8.0"
+  monitor:
+    description: "Whether to also run 'snyk container monitor'"
+    required: false
+    default: "false"
+  projectName:
+    description: "Project name prefix for Snyk dashboard (each image gets projectName-imageName)"
+    required: true
+  runId:
+    description: "Workflow run ID to download the container artifact from"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Snyk CLI
+      uses: snyk/actions/setup@master
+
+    - name: Download container artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.containerArtifact }}
+        run-id: ${{ inputs.runId }}
+        github-token: ${{ github.token }}
+
+    - name: Untar container archive
+      shell: bash
+      run: |
+        tar -xvf ${{ inputs.containerArtifact }}.tar
+
+    - name: Scan container images
+      shell: bash
+      env:
+        CVSS_THRESHOLD: ${{ inputs.cvssThreshold }}
+        MONITOR: ${{ inputs.monitor }}
+        PROJECT_NAME: ${{ inputs.projectName }}
+      run: |
+        FAILED=0
+        SCANNED=0
+
+        for archive in docker-images/container-archives/*.tar.gz; do
+          [ -f "$archive" ] || continue
+          IMAGE_NAME=$(basename "$archive" .tar.gz)
+
+          echo "=========================================="
+          echo "Scanning image: $IMAGE_NAME"
+          echo "=========================================="
+
+          LOAD_OUTPUT=$(docker load < "$archive")
+          echo "$LOAD_OUTPUT"
+          LOADED_IMAGE=$(echo "$LOAD_OUTPUT" | grep "Loaded image" | sed 's/Loaded image: //')
+
+          if [ -z "$LOADED_IMAGE" ]; then
+            echo "::warning::Could not determine loaded image tag for $IMAGE_NAME, skipping"
+            continue
+          fi
+
+          SARIF_FILE="snyk-container-${IMAGE_NAME}.sarif"
+          JSON_FILE="snyk-container-${IMAGE_NAME}.json"
+
+          snyk container test "$LOADED_IMAGE" \
+            --sarif-file-output="$SARIF_FILE" \
+            --json-file-output="$JSON_FILE" || true
+
+          if [ "$MONITOR" = "true" ]; then
+            snyk container monitor "$LOADED_IMAGE" \
+              --project-name="${PROJECT_NAME}-${IMAGE_NAME}" || true
+          fi
+
+          if [ -f "$JSON_FILE" ]; then
+            COUNT=$(jq --argjson t "$CVSS_THRESHOLD" '
+              if type == "array" then
+                [.[].vulnerabilities[]? | select(.cvssScore > $t)] | length
+              else
+                [.vulnerabilities[]? | select(.cvssScore > $t)] | length
+              end' "$JSON_FILE")
+            if [ "$COUNT" -gt 0 ]; then
+              echo "::error::Image $IMAGE_NAME has $COUNT vulnerabilities with CVSS score > $CVSS_THRESHOLD"
+              FAILED=$((FAILED + 1))
+            fi
+          fi
+
+          SCANNED=$((SCANNED + 1))
+        done
+
+        echo "Scanned $SCANNED image(s)"
+
+        if [ "$FAILED" -gt 0 ]; then
+          echo "::error::CVSS threshold exceeded for $FAILED image(s)"
+          exit 1
+        fi
+
+    - name: Upload SARIF files to GitHub Code Scanning
+      if: always()
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        for sarif in snyk-container-*.sarif; do
+          [ -f "$sarif" ] || continue
+          IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
+          echo "Uploading SARIF for image: $IMAGE_NAME"
+          ENCODED=$(gzip -c "$sarif" | base64 -w0)
+          gh api \
+            -X POST \
+            "/repos/$GITHUB_REPOSITORY/code-scanning/sarifs" \
+            -f commit_sha="$GITHUB_SHA" \
+            -f ref="$GITHUB_REF" \
+            -f sarif="$ENCODED" \
+            -f category="snyk-container-${IMAGE_NAME}"
+          echo "Uploaded SARIF for $IMAGE_NAME with category: snyk-container-${IMAGE_NAME}"
+        done
+
+    - name: Upload SARIF artifacts
+      uses: actions/upload-artifact@v7
+      if: always()
+      with:
+        name: snyk-container-sarif-${{ inputs.projectName }}
+        path: snyk-container-*.sarif
+        retention-days: 30

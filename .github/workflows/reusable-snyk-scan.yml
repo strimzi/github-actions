@@ -1,0 +1,118 @@
+name: Snyk Security Scan Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      scanMaven:
+        description: "Run Maven dependency scan"
+        required: false
+        type: boolean
+        default: true
+      scanContainers:
+        description: "Run container image scan"
+        required: false
+        type: boolean
+        default: false
+      containerArtifact:
+        description: "Name of container archive artifact to download (e.g., containers-operators-amd64)"
+        required: false
+        type: string
+        default: ""
+      containerArtifactRunId:
+        description: "Workflow run ID to download the container artifact from"
+        required: false
+        type: string
+        default: ""
+      cvssThreshold:
+        description: "CVSS score threshold — fail if any CVE scores above this"
+        required: false
+        type: string
+        default: "8.0"
+      javaVersion:
+        description: "Java version to use for build"
+        required: false
+        type: string
+        default: "21"
+      monitor:
+        description: "Run 'snyk monitor' to upload results to the Snyk dashboard"
+        required: false
+        type: boolean
+        default: false
+      projectNamePrefix:
+        description: "Prefix for Snyk dashboard project names"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to checkout"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      SNYK_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  snyk-maven:
+    name: Snyk Maven Scan
+    if: ${{ inputs.scanMaven }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || '' }}
+
+      - name: Setup Java and Maven
+        uses: strimzi/github-actions/.github/actions/dependencies/setup-java@main
+        with:
+          javaVersion: ${{ inputs.javaVersion }}
+
+      - name: Install yq
+        uses: strimzi/github-actions/.github/actions/dependencies/install-yq@main
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
+
+      - name: Build Maven project
+        shell: bash
+        run: mvn -B -DskipTests -Dmaven.javadoc.skip=true clean install
+
+      - name: Run Snyk Maven scan
+        uses: strimzi/github-actions/.github/actions/security/snyk-maven-scan@main
+        with:
+          cvssThreshold: ${{ inputs.cvssThreshold }}
+          monitor: ${{ inputs.monitor }}
+          projectName: ${{ format('{0}-maven', inputs.projectNamePrefix) }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  snyk-containers:
+    name: Snyk Container Scan
+    if: ${{ inputs.scanContainers }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Install Docker
+        uses: strimzi/github-actions/.github/actions/dependencies/install-docker@main
+
+      - name: Run Snyk container scan
+        uses: strimzi/github-actions/.github/actions/security/snyk-container-scan@main
+        with:
+          containerArtifact: ${{ inputs.containerArtifact }}
+          runId: ${{ inputs.containerArtifactRunId }}
+          cvssThreshold: ${{ inputs.cvssThreshold }}
+          monitor: ${{ inputs.monitor }}
+          projectName: ${{ inputs.projectNamePrefix }}
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
