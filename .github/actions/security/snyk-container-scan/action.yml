@@ -124,16 +124,27 @@ runs:
           [ -f "$sarif" ] || continue
           IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
           CATEGORY="snyk-container-${IMAGE_NAME}"
-          echo "Uploading SARIF for image: $IMAGE_NAME (category: $CATEGORY)"
-          jq --arg cat "$CATEGORY" '.runs |= [to_entries[] | .value.automationDetails.id = "\($cat)-\(.key)" | .value]' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
-          ENCODED=$(gzip -c "$sarif" | base64 -w0)
-          gh api \
-            -X POST \
-            "/repos/$GITHUB_REPOSITORY/code-scanning/sarifs" \
-            -f commit_sha="$GITHUB_SHA" \
-            -f ref="$GITHUB_REF" \
-            -f sarif="$ENCODED"
-          echo "Uploaded SARIF for $IMAGE_NAME"
+
+          RUN_COUNT=$(jq '.runs | length' "$sarif")
+          echo "Uploading SARIF for image: $IMAGE_NAME ($RUN_COUNT run(s), category: $CATEGORY)"
+
+          for i in $(seq 0 $((RUN_COUNT - 1))); do
+            jq --argjson idx "$i" --arg cat "${CATEGORY}/${i}" --arg img "$IMAGE_NAME" '
+              .runs = [.runs[$idx]
+                | .automationDetails.id = $cat
+                | .tool.driver.name = (.tool.driver.name + " (" + $img + ")")
+              ]
+            ' "$sarif" > "upload-${IMAGE_NAME}-${i}.sarif"
+
+            ENCODED=$(gzip -c "upload-${IMAGE_NAME}-${i}.sarif" | base64 -w0)
+            gh api \
+              -X POST \
+              "/repos/$GITHUB_REPOSITORY/code-scanning/sarifs" \
+              -f commit_sha="$GITHUB_SHA" \
+              -f ref="$GITHUB_REF" \
+              -f sarif="$ENCODED"
+            echo "Uploaded run $i for $IMAGE_NAME"
+          done
         done
 
     - name: Upload SARIF artifacts
