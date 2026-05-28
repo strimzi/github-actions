@@ -8,6 +8,7 @@ on:
     branches:
       - "main"
       - "release-*"
+      - "add-snyk-actions"
 
 # Declare default permissions as read only
 permissions:
