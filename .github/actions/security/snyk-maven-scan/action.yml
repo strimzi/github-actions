@@ -32,6 +32,17 @@ runs:
           --sarif-file-output=snyk-maven-${{ inputs.projectName }}.sarif \
           --json-file-output=snyk-results.json
 
+    - name: Sanitize SARIF security-severity values
+      shell: bash
+      run: |
+        SARIF_FILE="snyk-maven-${{ inputs.projectName }}.sarif"
+        if [ -f "$SARIF_FILE" ]; then
+          jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
+            if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
+            else .
+            end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
+        fi
+
     - name: Upload SARIF to GitHub Code Scanning
       uses: github/codeql-action/upload-sarif@v4
       if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}

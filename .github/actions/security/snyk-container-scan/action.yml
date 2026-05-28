@@ -103,6 +103,17 @@ runs:
           exit 1
         fi
 
+    - name: Sanitize SARIF security-severity values
+      shell: bash
+      run: |
+        for sarif in snyk-container-*.sarif; do
+          [ -f "$sarif" ] || continue
+          jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
+            if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
+            else .
+            end' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
+        done
+
     - name: Upload SARIF files to GitHub Code Scanning
       if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
       shell: bash
