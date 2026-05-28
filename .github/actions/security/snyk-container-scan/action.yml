@@ -123,16 +123,17 @@ runs:
         for sarif in snyk-container-*.sarif; do
           [ -f "$sarif" ] || continue
           IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
-          echo "Uploading SARIF for image: $IMAGE_NAME"
+          CATEGORY="snyk-container-${IMAGE_NAME}"
+          echo "Uploading SARIF for image: $IMAGE_NAME (category: $CATEGORY)"
+          jq --arg cat "$CATEGORY" '.runs[].automationDetails.id = $cat' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
           ENCODED=$(gzip -c "$sarif" | base64 -w0)
           gh api \
             -X POST \
             "/repos/$GITHUB_REPOSITORY/code-scanning/sarifs" \
             -f commit_sha="$GITHUB_SHA" \
             -f ref="$GITHUB_REF" \
-            -f sarif="$ENCODED" \
-            -f category="snyk-container-${IMAGE_NAME}"
-          echo "Uploaded SARIF for $IMAGE_NAME with category: snyk-container-${IMAGE_NAME}"
+            -f sarif="$ENCODED"
+          echo "Uploaded SARIF for $IMAGE_NAME"
         done
 
     - name: Upload SARIF artifacts
