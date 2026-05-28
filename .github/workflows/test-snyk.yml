@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Checkout strimzi/kafka-quotas-plugin
+      - name: Checkout strimzi/drain-cleaner
         uses: actions/checkout@v6
         with:
-          repository: strimzi/kafka-quotas-plugin
+          repository: strimzi/drain-cleaner
           ref: main
 
       - name: Checkout github-actions
@@ -62,21 +62,21 @@ jobs:
         with:
           cvssThreshold: "99.0"
           monitor: "false"
-          projectName: test-kafka-quotas-plugin
-          uploadToCodeScanning: "false"
+          projectName: test-drain-cleaner
+          uploadToCodeScanning: "true"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Download SARIF artifact
         uses: actions/download-artifact@v7
         with:
-          name: snyk-maven-test-kafka-quotas-plugin.sarif
+          name: snyk-maven-test-drain-cleaner.sarif
           path: sarif-output
 
       - name: Verify SARIF artifact
         shell: bash
         run: |
-          SARIF_FILE="sarif-output/snyk-maven-test-kafka-quotas-plugin.sarif"
+          SARIF_FILE="sarif-output/snyk-maven-test-drain-cleaner.sarif"
           if [ ! -f "$SARIF_FILE" ]; then
             echo "SARIF file not found: $SARIF_FILE"
             exit 1
@@ -197,7 +197,7 @@ jobs:
           cvssThreshold: "99.0"
           monitor: "false"
           projectName: test-drain-cleaner
-          uploadToCodeScanning: "false"
+          uploadToCodeScanning: "true"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
