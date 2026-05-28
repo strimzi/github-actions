@@ -13,6 +13,10 @@ inputs:
   projectName:
     description: "Project name for Snyk dashboard (also used to derive SARIF filename and Code Scanning category)"
     required: true
+  uploadToCodeScanning:
+    description: "Whether to upload SARIF results to GitHub Code Scanning"
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
@@ -30,7 +34,7 @@ runs:
 
     - name: Upload SARIF to GitHub Code Scanning
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
       with:
         sarif_file: snyk-maven-${{ inputs.projectName }}.sarif
         category: snyk-maven-${{ inputs.projectName }}

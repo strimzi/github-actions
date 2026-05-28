@@ -16,6 +16,10 @@ inputs:
   projectName:
     description: "Project name prefix for Snyk dashboard (each image gets projectName-imageName)"
     required: true
+  uploadToCodeScanning:
+    description: "Whether to upload SARIF results to GitHub Code Scanning"
+    required: false
+    default: "true"
   runId:
     description: "Workflow run ID to download the container artifact from"
     required: true
@@ -101,7 +105,7 @@ runs:
         fi
 
     - name: Upload SARIF files to GitHub Code Scanning
-      if: always()
+      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
