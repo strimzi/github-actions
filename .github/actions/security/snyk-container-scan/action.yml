@@ -40,7 +40,7 @@ runs:
     - name: Untar container archive
       shell: bash
       run: |
-        tar -xvf ${{ inputs.containerArtifact }}.tar
+        tar -xvf ${{ inputs.containerArtifact }}
 
     - name: Scan container images
       shell: bash
