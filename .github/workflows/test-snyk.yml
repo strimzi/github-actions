@@ -22,23 +22,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: Checkout github-actions
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
       - name: Checkout strimzi/drain-cleaner
         uses: actions/checkout@v6
         with:
           repository: strimzi/drain-cleaner
           ref: main
+          path: drain-cleaner
 
-      - name: Checkout github-actions
-        uses: actions/checkout@v6
-        with:
-          repository: strimzi/github-actions
-          ref: ${{ github.sha }}
-          path: github-actions
-
-      - name: Setup actions for testing
-        run: |
-          mkdir -p .github/actions
-          cp -r github-actions/.github/actions/* .github/actions/
+      - name: Copy drain-cleaner project to workspace root
+        run: rsync -a --exclude='.git' --exclude='.github' drain-cleaner/ ./
 
       - name: Setup Java and Maven
         uses: ./.github/actions/dependencies/setup-java

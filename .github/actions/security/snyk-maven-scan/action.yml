@@ -39,8 +39,6 @@ runs:
         sarif_file: snyk-maven-${{ inputs.projectName }}.sarif
         category: snyk-maven-${{ inputs.projectName }}
         wait-for-processing: true
-        ref: ${{ github.ref }}
-        sha: ${{ github.sha }}
 
     - name: Upload SARIF as workflow artifact
       uses: actions/upload-artifact@v7
