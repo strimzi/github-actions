@@ -125,7 +125,7 @@ runs:
           IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
           CATEGORY="snyk-container-${IMAGE_NAME}"
           echo "Uploading SARIF for image: $IMAGE_NAME (category: $CATEGORY)"
-          jq --arg cat "$CATEGORY" '.runs[].automationDetails.id = $cat' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
+          jq --arg cat "$CATEGORY" '.runs |= [to_entries[] | .value.automationDetails.id = "\($cat)-\(.key)" | .value]' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
           ENCODED=$(gzip -c "$sarif" | base64 -w0)
           gh api \
             -X POST \
