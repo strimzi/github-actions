@@ -171,6 +171,8 @@ jobs:
     needs: wait-for-container-artifact
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      images: ${{ steps.scan.outputs.images }}
     steps:
       - name: Checkout github-actions
         uses: actions/checkout@v6
@@ -188,6 +190,7 @@ jobs:
         uses: ./.github/actions/dependencies/install-docker
 
       - name: Run Snyk container scan
+        id: scan
         uses: ./.github/actions/security/snyk-container-scan
         with:
           containerArtifact: containers-operators-amd64.tar
@@ -195,7 +198,6 @@ jobs:
           cvssThreshold: "99.0"
           monitor: "false"
           projectPrefix: test-operators
-          uploadToCodeScanning: "true"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -214,7 +216,7 @@ jobs:
             exit 1
           fi
           echo "Found $SARIF_COUNT SARIF file(s)"
-          for sarif in sarif-output/*.sarif; do
+          for sarif in $(find sarif-output -name "*.sarif" -type f); do
             if [ ! -s "$sarif" ]; then
               echo "SARIF file is empty: $sarif"
               exit 1
@@ -222,3 +224,25 @@ jobs:
             jq empty "$sarif"
             echo "$(basename "$sarif"): valid JSON with $(jq '.runs | length' "$sarif") run(s)"
           done
+
+  upload-container-sarif:
+    name: Upload Container SARIF (${{ matrix.image }})
+    if: ${{ needs.test-snyk-container-scan.result == 'success' }}
+    needs: test-snyk-container-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.test-snyk-container-scan.outputs.images) }}
+    steps:
+      - name: Download SARIF artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: snyk-container-sarif-test-operators
+          path: sarif-download
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: sarif-download/${{ matrix.image }}
+          wait-for-processing: true

@@ -1,5 +1,5 @@
 name: "Snyk Container Scan"
-description: "Download container archive, discover images, and run Snyk container scan on each with SARIF upload and CVSS threshold check"
+description: "Download container archive, discover images, and run Snyk container scan on each with CVSS threshold check"
 
 inputs:
   containerArtifact:
@@ -16,13 +16,14 @@ inputs:
   projectPrefix:
     description: "Project prefix for Snyk dashboard and SARIF artifact naming (e.g., 'strimzi')"
     required: true
-  uploadToCodeScanning:
-    description: "Whether to upload SARIF results to GitHub Code Scanning"
-    required: false
-    default: "true"
   runId:
     description: "Workflow run ID to download the container artifact from"
     required: true
+
+outputs:
+  images:
+    description: "JSON array of scanned image names (for matrix upload)"
+    value: ${{ steps.prepare-sarif.outputs.images }}
 
 runs:
   using: "composite"
@@ -105,28 +106,25 @@ runs:
           exit 1
         fi
 
-    - name: Sanitize SARIF security-severity values
+    - name: Prepare SARIF files for upload
+      id: prepare-sarif
       shell: bash
       run: |
+        IMAGE_LIST="[]"
         for sarif in snyk-container-*.sarif; do
           [ -f "$sarif" ] || continue
+          IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
+
+          # Sanitize security-severity values
           jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
             if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
             else .
             end' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
-        done
 
-    - name: Prepare SARIF files for upload
-      shell: bash
-      run: |
-        mkdir -p sarif-upload
-        for sarif in snyk-container-*.sarif; do
-          [ -f "$sarif" ] || continue
-          IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
+          # Split multi-run SARIFs into individual files in per-image directories
+          mkdir -p "sarif-upload/${IMAGE_NAME}"
           CATEGORY="snyk-container-${IMAGE_NAME}"
-
           RUN_COUNT=$(jq '.runs | length' "$sarif")
-          echo "Preparing SARIF for image: $IMAGE_NAME ($RUN_COUNT run(s), category: $CATEGORY)"
 
           for i in $(seq 0 $((RUN_COUNT - 1))); do
             jq --argjson idx "$i" --arg cat "${CATEGORY}/${i}" --arg img "$IMAGE_NAME" '
@@ -134,22 +132,20 @@ runs:
                 | .automationDetails.id = $cat
                 | .tool.driver.name = (.tool.driver.name + " (" + $img + ")")
               ]
-            ' "$sarif" > "sarif-upload/${IMAGE_NAME}-${i}.sarif"
+            ' "$sarif" > "sarif-upload/${IMAGE_NAME}/run-${i}.sarif"
           done
-        done
-        echo "Prepared $(find sarif-upload -name '*.sarif' | wc -l) SARIF file(s) for upload"
 
-    - name: Upload SARIF to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v4
-      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
-      with:
-        sarif_file: sarif-upload
-        wait-for-processing: true
+          IMAGE_LIST=$(echo "$IMAGE_LIST" | jq --arg img "$IMAGE_NAME" '. + [$img]')
+          echo "Prepared $RUN_COUNT SARIF run(s) for $IMAGE_NAME"
+        done
+
+        echo "images=${IMAGE_LIST}" >> "$GITHUB_OUTPUT"
+        echo "Image list: ${IMAGE_LIST}"
 
     - name: Upload SARIF artifacts
       uses: actions/upload-artifact@v7
       if: always()
       with:
         name: snyk-container-sarif-${{ inputs.projectPrefix }}
-        path: snyk-container-*.sarif
+        path: sarif-upload/
         retention-days: 30

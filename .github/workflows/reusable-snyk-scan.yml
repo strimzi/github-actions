@@ -102,11 +102,14 @@ jobs:
     if: ${{ inputs.scanContainers }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    outputs:
+      images: ${{ steps.scan.outputs.images }}
     steps:
       - name: Install Docker
         uses: strimzi/github-actions/.github/actions/dependencies/install-docker@main
 
       - name: Run Snyk container scan
+        id: scan
         uses: strimzi/github-actions/.github/actions/security/snyk-container-scan@main
         with:
           containerArtifact: ${{ inputs.containerArtifact }}
@@ -116,3 +119,25 @@ jobs:
           projectPrefix: ${{ inputs.projectPrefix }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  snyk-container-upload-sarif:
+    name: Upload Container SARIF (${{ matrix.image }})
+    if: ${{ inputs.scanContainers && needs.snyk-containers.result == 'success' }}
+    needs: snyk-containers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.snyk-containers.outputs.images) }}
+    steps:
+      - name: Download SARIF artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: snyk-container-sarif-${{ inputs.projectPrefix }}
+          path: sarif-download
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: sarif-download/${{ matrix.image }}
+          wait-for-processing: true
