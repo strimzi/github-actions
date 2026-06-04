@@ -116,19 +116,17 @@ runs:
             end' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
         done
 
-    - name: Upload SARIF files to GitHub Code Scanning
-      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
+    - name: Prepare SARIF files for upload
       shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
       run: |
+        mkdir -p sarif-upload
         for sarif in snyk-container-*.sarif; do
           [ -f "$sarif" ] || continue
           IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
           CATEGORY="snyk-container-${IMAGE_NAME}"
 
           RUN_COUNT=$(jq '.runs | length' "$sarif")
-          echo "Uploading SARIF for image: $IMAGE_NAME ($RUN_COUNT run(s), category: $CATEGORY)"
+          echo "Preparing SARIF for image: $IMAGE_NAME ($RUN_COUNT run(s), category: $CATEGORY)"
 
           for i in $(seq 0 $((RUN_COUNT - 1))); do
             jq --argjson idx "$i" --arg cat "${CATEGORY}/${i}" --arg img "$IMAGE_NAME" '
@@ -136,18 +134,17 @@ runs:
                 | .automationDetails.id = $cat
                 | .tool.driver.name = (.tool.driver.name + " (" + $img + ")")
               ]
-            ' "$sarif" > "upload-${IMAGE_NAME}-${i}.sarif"
-
-            ENCODED=$(gzip -c "upload-${IMAGE_NAME}-${i}.sarif" | base64 -w0)
-            gh api \
-              -X POST \
-              "/repos/$GITHUB_REPOSITORY/code-scanning/sarifs" \
-              -f commit_sha="$GITHUB_SHA" \
-              -f ref="$GITHUB_REF" \
-              -f sarif="$ENCODED"
-            echo "Uploaded run $i for $IMAGE_NAME"
+            ' "$sarif" > "sarif-upload/${IMAGE_NAME}-${i}.sarif"
           done
         done
+        echo "Prepared $(find sarif-upload -name '*.sarif' | wc -l) SARIF file(s) for upload"
+
+    - name: Upload SARIF to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v4
+      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
+      with:
+        sarif_file: sarif-upload
+        wait-for-processing: true
 
     - name: Upload SARIF artifacts
       uses: actions/upload-artifact@v7
