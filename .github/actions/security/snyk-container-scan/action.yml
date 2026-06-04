@@ -135,7 +135,7 @@ runs:
             ' "$sarif" > "sarif-upload/${IMAGE_NAME}/run-${i}.sarif"
           done
 
-          IMAGE_LIST=$(echo "$IMAGE_LIST" | jq --arg img "$IMAGE_NAME" '. + [$img]')
+          IMAGE_LIST=$(echo "$IMAGE_LIST" | jq -c --arg img "$IMAGE_NAME" '. + [$img]')
           echo "Prepared $RUN_COUNT SARIF run(s) for $IMAGE_NAME"
         done
 
