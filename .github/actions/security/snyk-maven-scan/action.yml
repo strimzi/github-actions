@@ -10,8 +10,8 @@ inputs:
     description: "Whether to also run 'snyk monitor'"
     required: false
     default: "false"
-  projectName:
-    description: "Project name for Snyk dashboard (also used to derive SARIF filename and Code Scanning category)"
+  projectPrefix:
+    description: "Project prefix for Snyk dashboard and SARIF naming (e.g., 'strimzi')"
     required: true
   uploadToCodeScanning:
     description: "Whether to upload SARIF results to GitHub Code Scanning"
@@ -29,13 +29,13 @@ runs:
       continue-on-error: true
       run: |
         snyk test \
-          --sarif-file-output=snyk-maven-${{ inputs.projectName }}.sarif \
+          --sarif-file-output=snyk-maven-${{ inputs.projectPrefix }}.sarif \
           --json-file-output=snyk-results.json
 
     - name: Sanitize SARIF security-severity values
       shell: bash
       run: |
-        SARIF_FILE="snyk-maven-${{ inputs.projectName }}.sarif"
+        SARIF_FILE="snyk-maven-${{ inputs.projectPrefix }}.sarif"
         if [ -f "$SARIF_FILE" ]; then
           jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
             if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
@@ -47,24 +47,27 @@ runs:
       uses: github/codeql-action/upload-sarif@v4
       if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
       with:
-        sarif_file: snyk-maven-${{ inputs.projectName }}.sarif
-        category: snyk-maven-${{ inputs.projectName }}
+        sarif_file: snyk-maven-${{ inputs.projectPrefix }}.sarif
+        category: snyk-maven-${{ inputs.projectPrefix }}
         wait-for-processing: true
 
     - name: Upload SARIF as workflow artifact
       uses: actions/upload-artifact@v7
       if: always()
       with:
-        name: snyk-maven-${{ inputs.projectName }}.sarif
-        path: snyk-maven-${{ inputs.projectName }}.sarif
+        name: snyk-maven-${{ inputs.projectPrefix }}.sarif
+        path: snyk-maven-${{ inputs.projectPrefix }}.sarif
         retention-days: 30
 
     - name: Run Snyk monitor
       if: ${{ inputs.monitor == 'true' }}
       shell: bash
       continue-on-error: true
+      env:
+        PROJECT_PREFIX: ${{ inputs.projectPrefix }}
       run: |
-        snyk monitor --project-name=${{ inputs.projectName }}
+        REPO_NAME="${GITHUB_REPOSITORY##*/}"
+        snyk monitor --project-name="${PROJECT_PREFIX}/${REPO_NAME}"
 
     - name: Check CVSS threshold
       shell: bash

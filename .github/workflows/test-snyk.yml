@@ -60,7 +60,7 @@ jobs:
         with:
           cvssThreshold: "99.0"
           monitor: "false"
-          projectName: test-drain-cleaner
+          projectPrefix: test-drain-cleaner
           uploadToCodeScanning: "true"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -98,7 +98,7 @@ jobs:
         uses: actions/github-script@v9
         env:
           INPUT_SHA: ${{ github.sha }}
-          ARTIFACT_NAME: "containers-drain-cleaner-amd64.tar"
+          ARTIFACT_NAME: "containers-operators-amd64.tar"
           MAX_WAIT_MINUTES: "80"
         with:
           script: |
@@ -190,11 +190,11 @@ jobs:
       - name: Run Snyk container scan
         uses: ./.github/actions/security/snyk-container-scan
         with:
-          containerArtifact: containers-drain-cleaner-amd64.tar
+          containerArtifact: containers-operators-amd64.tar
           runId: ${{ needs.wait-for-container-artifact.outputs.run-id }}
           cvssThreshold: "99.0"
           monitor: "false"
-          projectName: test-drain-cleaner
+          projectPrefix: test-operators
           uploadToCodeScanning: "true"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -202,7 +202,7 @@ jobs:
       - name: Download SARIF artifacts
         uses: actions/download-artifact@v7
         with:
-          name: snyk-container-sarif-test-drain-cleaner
+          name: snyk-container-sarif-test-operators
           path: sarif-output
 
       - name: Verify SARIF artifacts

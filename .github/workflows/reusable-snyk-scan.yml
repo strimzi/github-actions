@@ -38,8 +38,8 @@ on:
         required: false
         type: boolean
         default: false
-      projectNamePrefix:
-        description: "Prefix for Snyk dashboard project names"
+      projectPrefix:
+        description: "Project prefix for Snyk dashboard (e.g., 'strimzi')"
         required: true
         type: string
       ref:
@@ -93,7 +93,7 @@ jobs:
         with:
           cvssThreshold: ${{ inputs.cvssThreshold }}
           monitor: ${{ inputs.monitor }}
-          projectName: ${{ format('{0}-maven', inputs.projectNamePrefix) }}
+          projectPrefix: ${{ inputs.projectPrefix }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -113,6 +113,6 @@ jobs:
           runId: ${{ inputs.containerArtifactRunId }}
           cvssThreshold: ${{ inputs.cvssThreshold }}
           monitor: ${{ inputs.monitor }}
-          projectName: ${{ inputs.projectNamePrefix }}
+          projectPrefix: ${{ inputs.projectPrefix }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

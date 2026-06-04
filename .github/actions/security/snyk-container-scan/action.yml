@@ -13,8 +13,8 @@ inputs:
     description: "Whether to also run 'snyk container monitor'"
     required: false
     default: "false"
-  projectName:
-    description: "Project name prefix for Snyk dashboard (each image gets projectName-imageName)"
+  projectPrefix:
+    description: "Project prefix for Snyk dashboard and SARIF artifact naming (e.g., 'strimzi')"
     required: true
   uploadToCodeScanning:
     description: "Whether to upload SARIF results to GitHub Code Scanning"
@@ -47,7 +47,6 @@ runs:
       env:
         CVSS_THRESHOLD: ${{ inputs.cvssThreshold }}
         MONITOR: ${{ inputs.monitor }}
-        PROJECT_NAME: ${{ inputs.projectName }}
       run: |
         FAILED=0
         SCANNED=0
@@ -76,8 +75,11 @@ runs:
             --json-file-output="$JSON_FILE" || true
 
           if [ "$MONITOR" = "true" ]; then
+            MONITOR_PROJECT="${LOADED_IMAGE%%:*}"
+            MONITOR_REVISION="${LOADED_IMAGE##*:}"
             snyk container monitor "$LOADED_IMAGE" \
-              --project-name="${PROJECT_NAME}-${IMAGE_NAME}" || true
+              --project-name="$MONITOR_PROJECT" \
+              --target-reference="$MONITOR_REVISION" || true
           fi
 
           if [ -f "$JSON_FILE" ]; then
@@ -151,6 +153,6 @@ runs:
       uses: actions/upload-artifact@v7
       if: always()
       with:
-        name: snyk-container-sarif-${{ inputs.projectName }}
+        name: snyk-container-sarif-${{ inputs.projectPrefix }}
         path: snyk-container-*.sarif
         retention-days: 30
