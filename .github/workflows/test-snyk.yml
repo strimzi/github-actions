@@ -201,7 +201,7 @@ jobs:
       - name: Run Snyk container scan
         uses: ./.github/actions/security/snyk-container-scan
         with:
-          imageFile: docker-images/container-archives/${{ matrix.image }}.tar
+          imageFile: docker-images/container-archives/${{ matrix.image }}.tar.gz
           image: ${{ matrix.image }}
           cvssThreshold: "99.0"
           monitor: "false"
@@ -229,10 +229,13 @@ jobs:
           run-id: ${{ needs.wait-for-container-artifact.outputs.run-id }}
           github-token: ${{ github.token }}
 
+      - name: Untar container archive
+        run: tar -xvf containers-drain-cleaner-amd64.tar
+
       - name: Run Snyk container scan
         uses: ./.github/actions/security/snyk-container-scan
         with:
-          imageFile: containers-drain-cleaner-amd64.tar
+          imageFile: drain-cleaner-container-amd64.tar.gz
           image: drain-cleaner-amd64
           cvssThreshold: "99.0"
           monitor: "false"
