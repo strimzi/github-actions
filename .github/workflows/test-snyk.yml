@@ -166,83 +166,76 @@ jobs:
               await new Promise(resolve => setTimeout(resolve, 30000));
             }
 
-  test-snyk-container-scan:
-    name: Test Snyk Container Scan
+  test-snyk-container-scan-operators:
+    name: Test Snyk Container Scan (${{ matrix.image }})
     needs: wait-for-container-artifact
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      images: ${{ steps.scan.outputs.images }}
+    strategy:
+      matrix:
+        image:
+          - buildah-latest-amd64
+          - kafka-build-kafka-4.1.0-amd64
+          - kafka-build-kafka-4.1.1-amd64
+          - kafka-build-kafka-4.2.0-amd64
+          - kaniko-executor-latest-amd64
+          - maven-builder-latest-amd64
+          - operator-latest-amd64
     steps:
       - name: Checkout github-actions
         uses: actions/checkout@v6
-        with:
-          repository: strimzi/github-actions
-          ref: ${{ github.sha }}
-          path: github-actions
-
-      - name: Setup actions for testing
-        run: |
-          mkdir -p .github/actions
-          cp -r github-actions/.github/actions/* .github/actions/
 
       - name: Install Docker
         uses: ./.github/actions/dependencies/install-docker
 
+      - name: Download container archive
+        uses: actions/download-artifact@v7
+        with:
+          name: containers-operators-amd64.tar
+          run-id: ${{ needs.wait-for-container-artifact.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Untar container archive
+        run: tar -xvf containers-operators-amd64.tar
+
       - name: Run Snyk container scan
-        id: scan
         uses: ./.github/actions/security/snyk-container-scan
         with:
-          containerArtifact: containers-operators-amd64.tar
-          runId: ${{ needs.wait-for-container-artifact.outputs.run-id }}
+          imageFile: docker-images/container-archives/${{ matrix.image }}.tar
+          image: ${{ matrix.image }}
           cvssThreshold: "99.0"
           monitor: "false"
           projectPrefix: test-operators
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: Download SARIF artifacts
-        uses: actions/download-artifact@v7
-        with:
-          name: snyk-container-sarif-test-operators
-          path: sarif-output
-
-      - name: Verify SARIF artifacts
-        shell: bash
-        run: |
-          SARIF_COUNT=$(find sarif-output -name "*.sarif" -type f | wc -l)
-          if [ "$SARIF_COUNT" -eq 0 ]; then
-            echo "No SARIF files found in artifacts"
-            exit 1
-          fi
-          echo "Found $SARIF_COUNT SARIF file(s)"
-          for sarif in $(find sarif-output -name "*.sarif" -type f); do
-            if [ ! -s "$sarif" ]; then
-              echo "SARIF file is empty: $sarif"
-              exit 1
-            fi
-            jq empty "$sarif"
-            echo "$(basename "$sarif"): valid JSON with $(jq '.runs | length' "$sarif") run(s)"
-          done
-
-  upload-container-sarif:
-    name: Upload Container SARIF (${{ matrix.image }})
-    if: ${{ needs.test-snyk-container-scan.result == 'success' }}
-    needs: test-snyk-container-scan
+  test-snyk-container-scan-drain-cleaner:
+    name: Test Snyk Container Scan (drain-cleaner)
+    needs: wait-for-container-artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        image: ${{ fromJson(needs.test-snyk-container-scan.outputs.images) }}
+    timeout-minutes: 30
+
     steps:
-      - name: Download SARIF artifacts
+      - name: Checkout github-actions
+        uses: actions/checkout@v6
+
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Download container archive
         uses: actions/download-artifact@v7
         with:
-          name: snyk-container-sarif-test-operators
-          path: sarif-download
+          name: containers-drain-cleaner-amd64.tar
+          run-id: ${{ needs.wait-for-container-artifact.outputs.run-id }}
+          github-token: ${{ github.token }}
 
-      - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Run Snyk container scan
+        uses: ./.github/actions/security/snyk-container-scan
         with:
-          sarif_file: sarif-download/${{ matrix.image }}
-          wait-for-processing: true
+          imageFile: containers-drain-cleaner-amd64.tar
+          image: drain-cleaner-amd64
+          cvssThreshold: "99.0"
+          monitor: "false"
+          projectPrefix: test-drain-cleaner
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

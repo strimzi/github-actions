@@ -1,9 +1,12 @@
 name: "Snyk Container Scan"
-description: "Download container archive, discover images, and run Snyk container scan on each with CVSS threshold check"
+description: "Scan a single container image with Snyk, upload results to Code Scanning, and check CVSS threshold"
 
 inputs:
-  containerArtifact:
-    description: "Name of the container archive artifact to download"
+  imageFile:
+    description: "Path to container image file for docker load"
+    required: true
+  image:
+    description: "Image name for SARIF naming and categorization"
     required: true
   cvssThreshold:
     description: "Fail if any CVE has CVSS score above this value"
@@ -14,16 +17,12 @@ inputs:
     required: false
     default: "false"
   projectPrefix:
-    description: "Project prefix for Snyk dashboard and SARIF artifact naming (e.g., 'strimzi')"
+    description: "Project prefix for Snyk dashboard (e.g., 'strimzi')"
     required: true
-  runId:
-    description: "Workflow run ID to download the container artifact from"
-    required: true
-
-outputs:
-  images:
-    description: "JSON array of scanned image names (for matrix upload)"
-    value: ${{ steps.prepare-sarif.outputs.images }}
+  uploadToCodeScanning:
+    description: "Whether to upload SARIF results to GitHub Code Scanning"
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
@@ -31,121 +30,94 @@ runs:
     - name: Setup Snyk CLI
       uses: snyk/actions/setup@master
 
-    - name: Download container artifact
-      uses: actions/download-artifact@v7
-      with:
-        name: ${{ inputs.containerArtifact }}
-        run-id: ${{ inputs.runId }}
-        github-token: ${{ github.token }}
-
-    - name: Untar container archive
+    - name: Load and scan image
       shell: bash
-      run: |
-        tar -xvf ${{ inputs.containerArtifact }}
-
-    - name: Scan container images
-      shell: bash
+      continue-on-error: true
       env:
-        CVSS_THRESHOLD: ${{ inputs.cvssThreshold }}
-        MONITOR: ${{ inputs.monitor }}
+        IMAGE_FILE: ${{ inputs.imageFile }}
+        IMAGE_NAME: ${{ inputs.image }}
       run: |
-        FAILED=0
-        SCANNED=0
-
-        for archive in $(find . -name "*.tar.gz" -type f); do
-          IMAGE_NAME=$(basename "$archive" .tar.gz)
-
-          echo "=========================================="
-          echo "Scanning image: $IMAGE_NAME"
-          echo "=========================================="
-
-          LOAD_OUTPUT=$(docker load < "$archive")
-          echo "$LOAD_OUTPUT"
-          LOADED_IMAGE=$(echo "$LOAD_OUTPUT" | grep "Loaded image" | sed 's/Loaded image: //')
-
-          if [ -z "$LOADED_IMAGE" ]; then
-            echo "::warning::Could not determine loaded image tag for $IMAGE_NAME, skipping"
-            continue
-          fi
-
-          SARIF_FILE="snyk-container-${IMAGE_NAME}.sarif"
-          JSON_FILE="snyk-container-${IMAGE_NAME}.json"
-
-          snyk container test "$LOADED_IMAGE" \
-            --sarif-file-output="$SARIF_FILE" \
-            --json-file-output="$JSON_FILE" || true
-
-          if [ "$MONITOR" = "true" ]; then
-            MONITOR_PROJECT="${LOADED_IMAGE%%:*}"
-            MONITOR_REVISION="${LOADED_IMAGE##*:}"
-            snyk container monitor "$LOADED_IMAGE" \
-              --project-name="$MONITOR_PROJECT" \
-              --target-reference="$MONITOR_REVISION" || true
-          fi
-
-          if [ -f "$JSON_FILE" ]; then
-            COUNT=$(jq --argjson t "$CVSS_THRESHOLD" '
-              if type == "array" then
-                [.[].vulnerabilities[]? | select(.cvssScore > $t)] | length
-              else
-                [.vulnerabilities[]? | select(.cvssScore > $t)] | length
-              end' "$JSON_FILE")
-            if [ "$COUNT" -gt 0 ]; then
-              echo "::error::Image $IMAGE_NAME has $COUNT vulnerabilities with CVSS score > $CVSS_THRESHOLD"
-              FAILED=$((FAILED + 1))
-            fi
-          fi
-
-          SCANNED=$((SCANNED + 1))
-        done
-
-        echo "Scanned $SCANNED image(s)"
-
-        if [ "$FAILED" -gt 0 ]; then
-          echo "::error::CVSS threshold exceeded for $FAILED image(s)"
+        if [ ! -f "$IMAGE_FILE" ]; then
+          echo "::error::Image file not found: $IMAGE_FILE"
           exit 1
         fi
 
-    - name: Prepare SARIF files for upload
-      id: prepare-sarif
-      shell: bash
-      run: |
-        IMAGE_LIST="[]"
-        for sarif in snyk-container-*.sarif; do
-          [ -f "$sarif" ] || continue
-          IMAGE_NAME=$(basename "$sarif" .sarif | sed 's/snyk-container-//')
+        LOAD_OUTPUT=$(docker load < "$IMAGE_FILE")
+        echo "$LOAD_OUTPUT"
+        LOADED_IMAGE=$(echo "$LOAD_OUTPUT" | grep "Loaded image" | sed 's/Loaded image: //')
 
-          # Sanitize security-severity values
+        if [ -z "$LOADED_IMAGE" ]; then
+          echo "::error::Could not determine loaded image tag for $IMAGE_NAME"
+          exit 1
+        fi
+
+        echo "LOADED_IMAGE=$LOADED_IMAGE" >> "$GITHUB_ENV"
+
+        snyk container test "$LOADED_IMAGE" \
+          --sarif-file-output="snyk-container-${IMAGE_NAME}.sarif" \
+          --json-file-output="snyk-container-${IMAGE_NAME}.json"
+
+    - name: Sanitize SARIF security-severity values
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        SARIF_FILE="snyk-container-${IMAGE_NAME}.sarif"
+        if [ -f "$SARIF_FILE" ]; then
           jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
             if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
             else .
-            end' "$sarif" > "${sarif}.tmp" && mv "${sarif}.tmp" "$sarif"
+            end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
+        fi
 
-          # Split multi-run SARIFs into individual files in per-image directories
-          mkdir -p "sarif-upload/${IMAGE_NAME}"
-          CATEGORY="snyk-container-${IMAGE_NAME}"
-          RUN_COUNT=$(jq '.runs | length' "$sarif")
+    - name: Upload SARIF to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v4
+      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
+      with:
+        sarif_file: snyk-container-${{ inputs.image }}.sarif
+        category: snyk-container-${{ inputs.image }}
+        wait-for-processing: true
 
-          for i in $(seq 0 $((RUN_COUNT - 1))); do
-            jq --argjson idx "$i" --arg cat "${CATEGORY}/${i}" --arg img "$IMAGE_NAME" '
-              .runs = [.runs[$idx]
-                | .automationDetails.id = $cat
-                | .tool.driver.name = (.tool.driver.name + " (" + $img + ")")
-              ]
-            ' "$sarif" > "sarif-upload/${IMAGE_NAME}/run-${i}.sarif"
-          done
-
-          IMAGE_LIST=$(echo "$IMAGE_LIST" | jq -c --arg img "$IMAGE_NAME" '. + [$img]')
-          echo "Prepared $RUN_COUNT SARIF run(s) for $IMAGE_NAME"
-        done
-
-        echo "images=${IMAGE_LIST}" >> "$GITHUB_OUTPUT"
-        echo "Image list: ${IMAGE_LIST}"
-
-    - name: Upload SARIF artifacts
+    - name: Upload SARIF as workflow artifact
       uses: actions/upload-artifact@v7
       if: always()
       with:
-        name: snyk-container-sarif-${{ inputs.projectPrefix }}
-        path: sarif-upload/
+        name: snyk-container-sarif-${{ inputs.image }}
+        path: snyk-container-${{ inputs.image }}.sarif
         retention-days: 30
+
+    - name: Run Snyk monitor
+      if: ${{ inputs.monitor == 'true' }}
+      shell: bash
+      continue-on-error: true
+      run: |
+        if [ -n "$LOADED_IMAGE" ]; then
+          MONITOR_PROJECT="${LOADED_IMAGE%%:*}"
+          MONITOR_REVISION="${LOADED_IMAGE##*:}"
+          snyk container monitor "$LOADED_IMAGE" \
+            --project-name="$MONITOR_PROJECT" \
+            --target-reference="$MONITOR_REVISION"
+        fi
+
+    - name: Check CVSS threshold
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        THRESHOLD=${{ inputs.cvssThreshold }}
+        JSON_FILE="snyk-container-${IMAGE_NAME}.json"
+        if [ -f "$JSON_FILE" ]; then
+          COUNT=$(jq --argjson t "$THRESHOLD" '
+            if type == "array" then
+              [.[].vulnerabilities[]? | select(.cvssScore > $t)] | length
+            else
+              [.vulnerabilities[]? | select(.cvssScore > $t)] | length
+            end' "$JSON_FILE")
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::Image $IMAGE_NAME has $COUNT vulnerabilities with CVSS score > $THRESHOLD"
+            exit 1
+          fi
+          echo "No vulnerabilities found with CVSS score > $THRESHOLD"
+        else
+          echo "No Snyk results file found, skipping CVSS threshold check"
+        fi
