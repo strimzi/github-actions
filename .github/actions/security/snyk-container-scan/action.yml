@@ -64,10 +64,12 @@ runs:
       run: |
         SARIF_FILE="snyk-container-${IMAGE_NAME}.sarif"
         if [ -f "$SARIF_FILE" ]; then
-          jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
-            if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
-            else .
-            end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
+          jq --arg name "Snyk Container ($IMAGE_NAME)" '
+            (.runs[].tool.driver.name) = $name |
+            (.runs[].tool.driver.rules[]?.properties."security-severity") |=
+              if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
+              else .
+              end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
         fi
 
     - name: Upload SARIF to GitHub Code Scanning
