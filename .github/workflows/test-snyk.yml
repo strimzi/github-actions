@@ -205,9 +205,25 @@ jobs:
           image: ${{ matrix.image }}
           cvssThreshold: "99.0"
           monitor: "false"
+          uploadToCodeScanning: "false"
           projectPrefix: test-operators
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Verify SARIF artifact
+        shell: bash
+        run: |
+          SARIF_FILE="snyk-container-${{ matrix.image }}.sarif"
+          if [ ! -f "$SARIF_FILE" ]; then
+            echo "SARIF file not found: $SARIF_FILE"
+            exit 1
+          fi
+          if [ ! -s "$SARIF_FILE" ]; then
+            echo "SARIF file is empty: $SARIF_FILE"
+            exit 1
+          fi
+          jq empty "$SARIF_FILE"
+          echo "SARIF file is valid JSON with $(jq '.runs | length' "$SARIF_FILE") run(s)"
 
   test-snyk-container-scan-drain-cleaner:
     name: Test Snyk Container Scan (drain-cleaner)
@@ -238,7 +254,23 @@ jobs:
           imageFile: drain-cleaner-container-amd64.tar.gz
           image: drain-cleaner-amd64
           cvssThreshold: "99.0"
-          monitor: "false"
+          monitor: "true"
+          uploadToCodeScanning: "false"
           projectPrefix: test-drain-cleaner
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Verify SARIF artifact
+        shell: bash
+        run: |
+          SARIF_FILE="snyk-container-drain-cleaner-amd64.sarif"
+          if [ ! -f "$SARIF_FILE" ]; then
+            echo "SARIF file not found: $SARIF_FILE"
+            exit 1
+          fi
+          if [ ! -s "$SARIF_FILE" ]; then
+            echo "SARIF file is empty: $SARIF_FILE"
+            exit 1
+          fi
+          jq empty "$SARIF_FILE"
+          echo "SARIF file is valid JSON with $(jq '.runs | length' "$SARIF_FILE") run(s)"

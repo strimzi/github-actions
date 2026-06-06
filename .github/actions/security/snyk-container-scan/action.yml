@@ -22,7 +22,7 @@ inputs:
   uploadToCodeScanning:
     description: "Whether to upload SARIF results to GitHub Code Scanning"
     required: false
-    default: "true"
+    default: "false"
 
 runs:
   using: "composite"
