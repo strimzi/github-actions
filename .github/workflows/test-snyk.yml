@@ -1,11 +1,11 @@
 name: Snyk Scan Tests
 
 on:
+  # Due to security constraints we cannot run the workflow on PRs due to missing secrets on PRs from forks
   push:
     branches:
       - "main"
       - "release-*"
-      - "add-snyk-actions"
 
 permissions:
   contents: read
