@@ -12,7 +12,7 @@ inputs:
     description: "Fail if any CVE has CVSS score above this value"
     required: false
     default: "8.0"
-  monitor:
+  snykMonitor:
     description: "Whether to also run 'snyk container monitor'"
     required: false
     default: "false"
@@ -28,7 +28,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup Snyk CLI
-      uses: snyk/actions/setup@master
+      uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
 
     - name: Load and scan image
       shell: bash
@@ -57,6 +57,9 @@ runs:
           --sarif-file-output="snyk-container-${IMAGE_NAME}.sarif" \
           --json-file-output="snyk-container-${IMAGE_NAME}.json"
 
+    # This is used to set severity score to 0.0 for those results that has empty value for it.
+    # Empty value is not supported by GitHub Code Scanning page
+    # It also set tool.driver.name to distinguish between different tools within UI (different tool = different image)
     - name: Sanitize SARIF security-severity values
       shell: bash
       env:
@@ -73,7 +76,7 @@ runs:
         fi
 
     - name: Upload SARIF to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
       if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
       with:
         sarif_file: snyk-container-${{ inputs.image }}.sarif
@@ -81,13 +84,14 @@ runs:
         wait-for-processing: true
 
     - name: Upload SARIF as workflow artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: always()
       with:
         name: snyk-container-sarif-${{ inputs.image }}
         path: snyk-container-${{ inputs.image }}.sarif
         retention-days: 30
 
+    # Monitor command is used for upload snapshot of the scan to Snyk App where Snyk will do daily scans and can generate reports
     - name: Run Snyk monitor
       if: ${{ inputs.monitor == 'true' }}
       shell: bash
