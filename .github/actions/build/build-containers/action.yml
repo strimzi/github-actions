@@ -22,7 +22,7 @@ inputs:
     description: "Container image tag"
     required: false
     default: "latest"
-  imagesDir:
+  imagesLocation:
     description: "Path to directory with images tar balls"
     required: true
   artifactSuffix:
@@ -64,7 +64,7 @@ runs:
 
     - name: Create tarball with images
       shell: bash
-      run: "tar -cvpf containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar ${{ inputs.imagesDir }}"
+      run: "tar -cvpf containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar ${{ inputs.imagesLocation }}"
 
     - name: Upload containers artifact
       uses: actions/upload-artifact@v7

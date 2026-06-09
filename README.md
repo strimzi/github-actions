@@ -37,7 +37,7 @@ Actions for building, testing, and releasing Strimzi components.
 | Action                     | Description                                              | Key Inputs                                                                           |
 |----------------------------|----------------------------------------------------------|--------------------------------------------------------------------------------------|
 | `build/build-binaries`     | Builds and tests Java binaries using Makefile targets    | `clusterOperatorBuild` (false), `mainBuild` (true), `artifactSuffix` (binaries)      |
-| `build/build-containers`   | Builds and archives container images                     | `architecture` (amd64), `imagesDir` (required), `containerTag` (latest)              |
+| `build/build-containers`   | Builds and archives container images                     | `architecture` (amd64), `imagesLocation` (required), `containerTag` (latest)              |
 | `build/push-containers`    | Pushes container images and creates multi-arch manifests | `architectures` (required), `registryUser` (required), `registryPassword` (required) |
 | `build/load-containers`    | Loads container images into Kind/Minikube registry       | `registry` (required: minikube/kind/external)                                        |
 | `build/deploy-java`        | Deploys Java artifacts to Maven Central                  | `projects` (required), `settingsPath` (required)                                     |
@@ -149,7 +149,7 @@ jobs:
       javaVersion: "17"
       helmChartName: "none"
       releaseVersion: "6.6.6"
-      imagesDir: "kafka-bridge-amd64.tar.gz"
+      imagesLocation: "kafka-bridge-amd64.tar.gz"
       clusterOperatorBuild: false
       githubActionsRef: "1.0.0"
     secrets: inherit

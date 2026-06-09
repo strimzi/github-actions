@@ -43,7 +43,7 @@ on:
         description: "Release version like 1.5.0"
         required: true
         type: string
-      imagesDir:
+      imagesLocation:
         description: "Directory/file that will be used as source for containers tar ball"
         required: true
         type: string
@@ -290,7 +290,7 @@ jobs:
       - name: Build containers using build-containers action
         uses: ./.github/actions/build/build-containers
         with:
-          imagesDir: ${{ inputs.imagesDir }}
+          imagesLocation: ${{ inputs.imagesLocation }}
           artifactSuffix: "${{ inputs.artifactSuffix }}"
 
   test-push-containers:

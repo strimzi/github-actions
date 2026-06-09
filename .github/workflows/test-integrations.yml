@@ -37,7 +37,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "strimzi-kafka-operator-helm-3-chart"
             releaseVersion: "6.6.6"
-            imagesDir: "./docker-images/container-archives"
+            imagesLocation: "./docker-images/container-archives"
             clusterOperatorBuild: true
             checkTests: false
 
@@ -52,7 +52,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6-rc1"
-            imagesDir: "kafka-bridge-amd64.tar.gz"
+            imagesLocation: "kafka-bridge-amd64.tar.gz"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -67,7 +67,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "strimzi-access-operator-helm-3-chart"
             releaseVersion: "6.6.6"
-            imagesDir: "access-operator-container-amd64.tar.gz"
+            imagesLocation: "access-operator-container-amd64.tar.gz"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -82,7 +82,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "mqtt-bridge-amd64.tar.gz"
+            imagesLocation: "mqtt-bridge-amd64.tar.gz"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -97,7 +97,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "strimzi-drain-cleaner-helm-3-chart"
             releaseVersion: "6.6.6"
-            imagesDir: "drain-cleaner-container-amd64.tar.gz"
+            imagesLocation: "drain-cleaner-container-amd64.tar.gz"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -112,7 +112,7 @@ jobs:
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "none"
-            imagesDir: "*-amd64.tar.gz"
+            imagesLocation: "*-amd64.tar.gz"
             clusterOperatorBuild: false
             checkTests: false
 
@@ -127,7 +127,7 @@ jobs:
             javaVersion: "21"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "./docker-images/container-archives"
+            imagesLocation: "./docker-images/container-archives"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -142,7 +142,7 @@ jobs:
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "none"
+            imagesLocation: "none"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -157,7 +157,7 @@ jobs:
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "none"
+            imagesLocation: "none"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -172,7 +172,7 @@ jobs:
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "none"
+            imagesLocation: "none"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -187,7 +187,7 @@ jobs:
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "none"
+            imagesLocation: "none"
             clusterOperatorBuild: false
             checkTests: true
 
@@ -202,7 +202,7 @@ jobs:
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "6.6.6"
-            imagesDir: "none"
+            imagesLocation: "none"
             clusterOperatorBuild: false
             checkTests: true
     
@@ -218,7 +218,7 @@ jobs:
       javaVersion: ${{ matrix.project.javaVersion }}
       helmChartName: ${{ matrix.project.helmChartName }}
       releaseVersion: ${{ matrix.project.releaseVersion }}
-      imagesDir: ${{ matrix.project.imagesDir }}
+      imagesLocation: ${{ matrix.project.imagesLocation }}
       clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild }}
       checkTests: ${{ matrix.project.checkTests }}
     secrets: inherit
