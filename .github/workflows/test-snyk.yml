@@ -58,7 +58,6 @@ jobs:
       - name: Run Snyk Maven scan
         uses: ./.github/actions/security/snyk-maven-scan
         with:
-          cvssThreshold: "99.0"
           # Keep false to avoid uploading testing results to Snyk App
           snykMonitor: "false"
           # Keep false to avoid uploading results to GitHub Code Scanning page
@@ -205,7 +204,6 @@ jobs:
         with:
           imageFile: docker-images/container-archives/${{ matrix.image }}.tar.gz
           image: ${{ matrix.image }}
-          cvssThreshold: "99.0"
           snykMonitor: "false"
           uploadToCodeScanning: "false"
           projectPrefix: test-operators
@@ -255,7 +253,6 @@ jobs:
         with:
           imageFile: drain-cleaner-container-amd64.tar.gz
           image: drain-cleaner-amd64
-          cvssThreshold: "99.0"
           # Keep false to avoid uploading testing results to Snyk App
           snykMonitor: "false"
           # Keep false to avoid uploading results to GitHub Code Scanning page

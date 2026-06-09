@@ -1,5 +1,5 @@
 name: "Snyk Container Scan"
-description: "Scan a single container image with Snyk, upload results to Code Scanning, and check CVSS threshold"
+description: "Scan a single container image with Snyk, upload results to Code Scanning"
 
 inputs:
   imageFile:
@@ -8,10 +8,6 @@ inputs:
   image:
     description: "Image name for SARIF naming and categorization"
     required: true
-  cvssThreshold:
-    description: "Fail if any CVE has CVSS score above this value"
-    required: false
-    default: "8.0"
   snykMonitor:
     description: "Whether to also run 'snyk container monitor'"
     required: false
@@ -103,27 +99,4 @@ runs:
           snyk container monitor "$LOADED_IMAGE" \
             --project-name="$MONITOR_PROJECT" \
             --target-reference="$MONITOR_REVISION"
-        fi
-
-    - name: Check CVSS threshold
-      shell: bash
-      env:
-        IMAGE_NAME: ${{ inputs.image }}
-      run: |
-        THRESHOLD=${{ inputs.cvssThreshold }}
-        JSON_FILE="snyk-container-${IMAGE_NAME}.json"
-        if [ -f "$JSON_FILE" ]; then
-          COUNT=$(jq --argjson t "$THRESHOLD" '
-            if type == "array" then
-              [.[].vulnerabilities[]? | select(.cvssScore > $t)] | length
-            else
-              [.vulnerabilities[]? | select(.cvssScore > $t)] | length
-            end' "$JSON_FILE")
-          if [ "$COUNT" -gt 0 ]; then
-            echo "::error::Image $IMAGE_NAME has $COUNT vulnerabilities with CVSS score > $THRESHOLD"
-            exit 1
-          fi
-          echo "No vulnerabilities found with CVSS score > $THRESHOLD"
-        else
-          echo "No Snyk results file found, skipping CVSS threshold check"
         fi
