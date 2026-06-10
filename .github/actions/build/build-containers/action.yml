@@ -34,13 +34,13 @@ runs:
   steps:
     - name: Download binaries from this workflow
       if: ${{ inputs.buildRunId == '' }}
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: binaries-${{ inputs.artifactSuffix }}.tar
 
     - name: Download binaries from external build
       if: ${{ inputs.buildRunId != '' }}
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         name: binaries-${{ inputs.artifactSuffix }}.tar
         run-id: ${{ inputs.buildRunId }}
@@ -67,7 +67,7 @@ runs:
       run: "tar -cvpf containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar ${{ inputs.imagesLocation }}"
 
     - name: Upload containers artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar
         path: containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar
