@@ -1,3 +1,4 @@
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/strimzi/github-actions/badge)](https://scorecard.dev/viewer/?uri=github.com/strimzi/github-actions)
 [![Build Status - dependencies](https://github.com/strimzi/github-actions/actions/workflows/test-dependencies.yml/badge.svg)](https://github.com/strimzi/github-actions/actions/workflows/test-dependencies.yml)
 [![Build Status - integrations](https://github.com/strimzi/github-actions/actions/workflows/test-integrations.yml/badge.svg)](https://github.com/strimzi/github-actions/actions/workflows/test-integrations.yml)
 [![Build Status - utils](https://github.com/strimzi/github-actions/actions/workflows/test-utils.yml/badge.svg)](https://github.com/strimzi/github-actions/actions/workflows/test-utils.yml)
