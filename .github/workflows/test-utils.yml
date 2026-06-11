@@ -22,7 +22,7 @@ jobs:
       - name: Install act
         run: |
           # Install act for workflow testing
-          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+          curl -s https://raw.githubusercontent.com/nektos/act/4f411281417e88660bea1c1a1749aa71ae0bd60f/install.sh | sudo bash # v0.2.89
           sudo install -m 0755 ./bin/act /usr/local/bin/act
 
       - name: Install yq
@@ -116,7 +116,7 @@ jobs:
       - name: Install act
         run: |
           # Install act for workflow testing
-          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+          curl -s https://raw.githubusercontent.com/nektos/act/4f411281417e88660bea1c1a1749aa71ae0bd60f/install.sh | sudo bash # v0.2.89
           sudo install -m 0755 ./bin/act /usr/local/bin/act
 
       - name: Install yq
