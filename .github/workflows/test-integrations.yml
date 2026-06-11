@@ -212,7 +212,7 @@ jobs:
             artifactSuffix: "strimzi-test-connectors"
             architecture: "amd64"
             buildContainers: false
-            modules: "./"
+            modules: "./,fault-injection-source-connector"
             nexusCheck: "fault-injection-source-connector"
             javaVersion: "17"
             helmChartName: "none"
