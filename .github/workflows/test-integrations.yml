@@ -28,7 +28,7 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
-            ref: "release-0.51.x"
+            ref: "release-1.0.x"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
@@ -58,7 +58,7 @@ jobs:
 
           # Access Operator - Full pipeline with containers
           - repo: "strimzi/kafka-access-operator"
-            ref: "main"
+            ref: "release-0.3.x"
             artifactSuffix: "access-operator"
             architecture: "amd64"
             buildContainers: true
@@ -88,7 +88,7 @@ jobs:
 
           # Drain Cleaner - Full pipeline with containers and Helm
           - repo: "strimzi/drain-cleaner"
-            ref: "main"
+            ref: "release-1.6.x"
             artifactSuffix: "drain-cleaner"
             architecture: "amd64"
             buildContainers: true
@@ -118,7 +118,7 @@ jobs:
 
           # Test Clients - Containers only (no Maven deploy)
           - repo: "strimzi/test-clients"
-            ref: "main"
+            ref: "release-0.14.x"
             artifactSuffix: "test-clients"
             architecture: "amd64"
             buildContainers: true
@@ -193,12 +193,27 @@ jobs:
 
           # Test Container - Java only (no containers)
           - repo: "strimzi/test-container"
-            ref: "main"
+            ref: "release-0.116.x"
             artifactSuffix: "strimzi-test-container"
             architecture: "amd64"
             buildContainers: false
             modules: "./"
             nexusCheck: "strimzi-test-container"
+            javaVersion: "17"
+            helmChartName: "none"
+            releaseVersion: "6.6.6"
+            imagesLocation: "none"
+            clusterOperatorBuild: false
+            checkTests: true
+
+          # Test Connectors - Java only (no containers)
+          - repo: "strimzi/test-connectors"
+            ref: "release-0.1.x"
+            artifactSuffix: "strimzi-test-connectors"
+            architecture: "amd64"
+            buildContainers: false
+            modules: "./,fault-injection-source-connector"
+            nexusCheck: "fault-injection-source-connector"
             javaVersion: "17"
             helmChartName: "none"
             releaseVersion: "6.6.6"
