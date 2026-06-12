@@ -23,7 +23,7 @@ jobs:
     name: Test install-docker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run install-docker action
         uses: ./.github/actions/dependencies/install-docker
@@ -53,7 +53,7 @@ jobs:
         - 'v3.20.0'
         - 'v3.16.0'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run install-helm action
         uses: ./.github/actions/dependencies/install-helm
@@ -83,7 +83,7 @@ jobs:
           - '0.11.0'
           - '0.10.0'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run install-shellcheck action
         uses: ./.github/actions/dependencies/install-shellcheck
@@ -114,7 +114,7 @@ jobs:
           - '1.0.0'
           - '1.20.0'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run install-syft action
         uses: ./.github/actions/dependencies/install-syft
@@ -139,7 +139,7 @@ jobs:
           - 'v4.6.3'
           - 'v4.52.2'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run install-yq action
         uses: ./.github/actions/dependencies/install-yq
@@ -163,7 +163,7 @@ jobs:
         javaVersion: ['17', '21']
         mavenVersion: ['3.9.9', '3.8.8']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run setup-java action
         uses: ./.github/actions/dependencies/setup-java
@@ -208,7 +208,7 @@ jobs:
             workerNodes: 3
             expectedK8sVersion: "1.35"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run setup-kind action
         uses: ./.github/actions/dependencies/setup-kind
@@ -304,7 +304,7 @@ jobs:
           - 'v1.30.0'
           - 'v1.35.0'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Run setup-minikube action
         uses: ./.github/actions/dependencies/setup-minikube

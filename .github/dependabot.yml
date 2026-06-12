@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    # Workflows are loaded automatically when / is specified in the directories list
+    directories:
+      - "/"
+      - "/.github/actions/build/*"
+      - "/.github/actions/dependencies/*"
+      - "/.github/actions/utils/*"
+    schedule:
+      interval: "weekly"

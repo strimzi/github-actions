@@ -13,7 +13,7 @@ function install_helm3 {
     fi
 
     export HELM_INSTALL_DIR=/usr/bin
-    curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
+    curl https://raw.githubusercontent.com/helm/helm/06468084e85c244c712834933d25ea232a4c2093/scripts/get > get_helm.sh # v4.2.0
     # we need to modify the script with a different path because on the Azure pipelines the HELM_INSTALL_DIR env var is not honoured
     sed -i 's#/usr/local/bin#/usr/bin#g' get_helm.sh
     chmod 700 get_helm.sh
