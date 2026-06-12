@@ -1,0 +1,277 @@
+name: Snyk Scan Tests
+
+on:
+  # Due to security constraints we cannot run the workflow on PRs due to missing secrets on PRs from forks
+  push:
+    branches:
+      - "main"
+      - "release-*"
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-snyk-maven-scan:
+    name: Test Snyk Maven Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout github-actions
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Checkout strimzi/drain-cleaner
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: strimzi/drain-cleaner
+          ref: 1.6.0
+          path: drain-cleaner
+
+      - name: Copy drain-cleaner project to workspace root
+        run: rsync -a --exclude='.git' --exclude='.github' drain-cleaner/ ./
+
+      - name: Setup Java and Maven
+        uses: ./.github/actions/dependencies/setup-java
+
+      - name: Install yq
+        uses: ./.github/actions/dependencies/install-yq
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
+
+      - name: Build Maven project
+        shell: bash
+        run: mvn -B -DskipTests -Dmaven.javadoc.skip=true clean install
+
+      - name: Run Snyk Maven scan
+        uses: ./.github/actions/security/snyk-maven-scan
+        with:
+          # Keep false to avoid uploading testing results to Snyk App
+          snykMonitor: "false"
+          # Keep false to avoid uploading results to GitHub Code Scanning page
+          uploadToCodeScanning: "false"
+          projectPrefix: test-drain-cleaner
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Download SARIF artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: snyk-maven-test-drain-cleaner.sarif
+          path: sarif-output
+
+      - name: Verify SARIF artifact
+        shell: bash
+        run: |
+          SARIF_FILE="sarif-output/snyk-maven-test-drain-cleaner.sarif"
+          if [ ! -f "$SARIF_FILE" ]; then
+            echo "SARIF file not found: $SARIF_FILE"
+            exit 1
+          fi
+          if [ ! -s "$SARIF_FILE" ]; then
+            echo "SARIF file is empty: $SARIF_FILE"
+            exit 1
+          fi
+          jq empty "$SARIF_FILE"
+          echo "SARIF file is valid JSON with $(jq '.runs | length' "$SARIF_FILE") run(s)"
+
+  # Test workflow loads image artifacts from test-integrations workflow.
+  # To avoid additional image build, the scan check will wait until integration workflow store the artifacts
+  wait-for-container-artifact:
+    name: Wait for Container Artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      run-id: ${{ steps.find-build.outputs.run_id }}
+    steps:
+      - name: Wait for container artifact
+        id: find-build
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          INPUT_SHA: ${{ github.sha }}
+          ARTIFACT_NAME: "containers-operators-amd64.tar"
+          MAX_WAIT_MINUTES: "80"
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const workflowName = 'test-integrations.yml';
+            const sha = process.env.INPUT_SHA;
+            const artifactName = process.env.ARTIFACT_NAME;
+            const maxWaitMinutes = parseInt(process.env.MAX_WAIT_MINUTES);
+            const maxWaitSeconds = maxWaitMinutes * 60;
+            const startTime = Date.now();
+
+            core.info(`Waiting for artifact '${artifactName}' from commit ${sha}`);
+
+            async function findArtifact() {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowName,
+                head_sha: sha,
+                per_page: 1
+              });
+
+              const run = runs.data.workflow_runs[0];
+              if (!run) return null;
+
+              const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                owner,
+                repo,
+                run_id: run.id
+              });
+
+              const artifact = artifacts.data.artifacts.find(a => a.name === artifactName);
+              if (artifact) {
+                return { runId: run.id, artifactId: artifact.id };
+              }
+
+              if (run.status === 'completed') {
+                core.setFailed(`Integration tests completed (${run.conclusion}) but artifact '${artifactName}' not found`);
+                core.setFailed(`Run: ${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}`);
+                return 'failed';
+              }
+
+              return null;
+            }
+
+            while (true) {
+              const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+              if (elapsed >= maxWaitSeconds) {
+                core.setFailed(`Timeout: Artifact '${artifactName}' not found after ${maxWaitMinutes} minutes`);
+                return;
+              }
+
+              const result = await findArtifact();
+
+              if (result === 'failed') return;
+
+              if (result) {
+                core.setOutput('run_id', result.runId.toString());
+                core.info(`Artifact '${artifactName}' found in run #${result.runId}`);
+                return;
+              }
+
+              core.info(`Artifact not available yet... (${elapsed}s elapsed, max: ${maxWaitSeconds}s)`);
+              await new Promise(resolve => setTimeout(resolve, 30000));
+            }
+
+  test-snyk-container-scan-operators:
+    name: Test Snyk Container Scan (${{ matrix.image }})
+    needs: wait-for-container-artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        image:
+          # Kafka images are not here to avoid need to change Kafka versions on multiple places when we bump operators repo versions for testing
+          - buildah-latest-amd64
+          - kaniko-executor-latest-amd64
+          - maven-builder-latest-amd64
+          - operator-latest-amd64
+    steps:
+      - name: Checkout github-actions
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Download container archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: containers-operators-amd64.tar
+          run-id: ${{ needs.wait-for-container-artifact.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Untar container archive
+        run: tar -xvf containers-operators-amd64.tar
+
+      - name: Run Snyk container scan
+        uses: ./.github/actions/security/snyk-container-scan
+        with:
+          imageFile: docker-images/container-archives/${{ matrix.image }}.tar.gz
+          image: ${{ matrix.image }}
+          snykMonitor: "false"
+          uploadToCodeScanning: "false"
+          projectPrefix: test-operators
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Verify SARIF artifact
+        shell: bash
+        run: |
+          SARIF_FILE="snyk-container-${{ matrix.image }}.sarif"
+          if [ ! -f "$SARIF_FILE" ]; then
+            echo "SARIF file not found: $SARIF_FILE"
+            exit 1
+          fi
+          if [ ! -s "$SARIF_FILE" ]; then
+            echo "SARIF file is empty: $SARIF_FILE"
+            exit 1
+          fi
+          jq empty "$SARIF_FILE"
+          echo "SARIF file is valid JSON with $(jq '.runs | length' "$SARIF_FILE") run(s)"
+
+  test-snyk-container-scan-drain-cleaner:
+    name: Test Snyk Container Scan (drain-cleaner)
+    needs: wait-for-container-artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout github-actions
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install Docker
+        uses: ./.github/actions/dependencies/install-docker
+
+      - name: Download container archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: containers-drain-cleaner-amd64.tar
+          run-id: ${{ needs.wait-for-container-artifact.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Untar container archive
+        run: tar -xvf containers-drain-cleaner-amd64.tar
+
+      - name: Run Snyk container scan
+        uses: ./.github/actions/security/snyk-container-scan
+        with:
+          imageFile: drain-cleaner-container-amd64.tar.gz
+          image: drain-cleaner-amd64
+          # Keep false to avoid uploading testing results to Snyk App
+          snykMonitor: "false"
+          # Keep false to avoid uploading results to GitHub Code Scanning page
+          uploadToCodeScanning: "false"
+          projectPrefix: test-drain-cleaner
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Verify SARIF artifact
+        shell: bash
+        run: |
+          SARIF_FILE="snyk-container-drain-cleaner-amd64.sarif"
+          if [ ! -f "$SARIF_FILE" ]; then
+            echo "SARIF file not found: $SARIF_FILE"
+            exit 1
+          fi
+          if [ ! -s "$SARIF_FILE" ]; then
+            echo "SARIF file is empty: $SARIF_FILE"
+            exit 1
+          fi
+          jq empty "$SARIF_FILE"
+          echo "SARIF file is valid JSON with $(jq '.runs | length' "$SARIF_FILE") run(s)"

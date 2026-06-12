@@ -1,0 +1,69 @@
+name: "Snyk Maven Scan"
+description: "Run Snyk scan on Maven dependencies with SARIF upload"
+
+inputs:
+  snykMonitor:
+    description: "Whether to also run 'snyk monitor'"
+    required: false
+    default: "false"
+  projectPrefix:
+    description: "Project prefix for Snyk dashboard and SARIF naming (e.g., 'strimzi')"
+    required: true
+  uploadToCodeScanning:
+    description: "Whether to upload SARIF results to GitHub Code Scanning"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Snyk CLI
+      uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
+
+    - name: Run Snyk test
+      shell: bash
+      continue-on-error: true
+      run: |
+        snyk test \
+          --sarif-file-output=snyk-maven-${{ inputs.projectPrefix }}.sarif \
+          --json-file-output=snyk-results.json
+
+    # This is used to set severity score to 0.0 for those results that has empty value for it.
+    # Empty value is not supported by GitHub Code Scanning page
+    - name: Sanitize SARIF security-severity values
+      shell: bash
+      run: |
+        SARIF_FILE="snyk-maven-${{ inputs.projectPrefix }}.sarif"
+        if [ -f "$SARIF_FILE" ]; then
+          jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
+            if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
+            else .
+            end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
+        fi
+
+    - name: Upload SARIF to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+      if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
+      with:
+        sarif_file: snyk-maven-${{ inputs.projectPrefix }}.sarif
+        category: snyk-maven-${{ inputs.projectPrefix }}
+        wait-for-processing: true
+
+    - name: Upload SARIF as workflow artifact
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      if: always()
+      with:
+        name: snyk-maven-${{ inputs.projectPrefix }}.sarif
+        path: snyk-maven-${{ inputs.projectPrefix }}.sarif
+        retention-days: 30
+
+    # Monitor command is used for upload snapshot of the scan to Snyk App where Snyk will do daily scans and can generate reports
+    - name: Run Snyk monitor
+      if: ${{ inputs.monitor == 'true' }}
+      shell: bash
+      continue-on-error: true
+      env:
+        PROJECT_PREFIX: ${{ inputs.projectPrefix }}
+      run: |
+        REPO_NAME="${GITHUB_REPOSITORY##*/}"
+        snyk monitor --project-name="${PROJECT_PREFIX}/${REPO_NAME}"
