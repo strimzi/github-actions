@@ -8,6 +8,8 @@ on:
     branches:
       - "main"
       - "release-*"
+      # TODO - Revert this
+      - "fix-snyk-uploads"
 
 # Declare default permissions as read only
 permissions:
