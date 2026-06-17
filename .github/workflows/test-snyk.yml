@@ -6,6 +6,8 @@ on:
     branches:
       - "main"
       - "release-*"
+      # TODO - Revert this
+      - "fix-snyk-uploads"
 
 permissions:
   contents: read
@@ -59,7 +61,7 @@ jobs:
         uses: ./.github/actions/security/snyk-maven-scan
         with:
           # Keep false to avoid uploading testing results to Snyk App
-          snykMonitor: "false"
+          snykMonitor: "true"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
           projectPrefix: test-drain-cleaner
@@ -182,6 +184,8 @@ jobs:
           - kaniko-executor-latest-amd64
           - maven-builder-latest-amd64
           - operator-latest-amd64
+          # TODO - revert this
+          - kafka-build-kafka-4.2.0-amd64
     steps:
       - name: Checkout github-actions
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -204,7 +208,7 @@ jobs:
         with:
           imageFile: docker-images/container-archives/${{ matrix.image }}.tar.gz
           image: ${{ matrix.image }}
-          snykMonitor: "false"
+          snykMonitor: "true"
           uploadToCodeScanning: "false"
           projectPrefix: test-operators
         env:
@@ -254,7 +258,7 @@ jobs:
           imageFile: drain-cleaner-container-amd64.tar.gz
           image: drain-cleaner-amd64
           # Keep false to avoid uploading testing results to Snyk App
-          snykMonitor: "false"
+          snykMonitor: "true"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
           projectPrefix: test-drain-cleaner

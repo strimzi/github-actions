@@ -59,11 +59,13 @@ runs:
 
     # Monitor command is used for upload snapshot of the scan to Snyk App where Snyk will do daily scans and can generate reports
     - name: Run Snyk monitor
-      if: ${{ inputs.monitor == 'true' }}
+      if: ${{ inputs.snykMonitor == 'true' }}
       shell: bash
       continue-on-error: true
       env:
         PROJECT_PREFIX: ${{ inputs.projectPrefix }}
       run: |
         REPO_NAME="${GITHUB_REPOSITORY##*/}"
-        snyk monitor --project-name="${PROJECT_PREFIX}/${REPO_NAME}"
+        snyk monitor \
+          --project-name="${PROJECT_PREFIX}/${REPO_NAME}" \
+          --target-reference="${GITHUB_REF_NAME}"
