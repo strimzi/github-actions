@@ -62,10 +62,5 @@ runs:
       if: ${{ inputs.snykMonitor == 'true' }}
       shell: bash
       continue-on-error: true
-      env:
-        PROJECT_PREFIX: ${{ inputs.projectPrefix }}
       run: |
-        REPO_NAME="${GITHUB_REPOSITORY##*/}"
-        snyk monitor \
-          --project-name="${PROJECT_PREFIX}/${REPO_NAME}" \
-          --target-reference="${GITHUB_REF_NAME}"
+        snyk monitor --target-reference="${GITHUB_REF_NAME}"
