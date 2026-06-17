@@ -209,6 +209,7 @@ jobs:
           imageFile: docker-images/container-archives/${{ matrix.image }}.tar.gz
           image: ${{ matrix.image }}
           snykMonitor: "true"
+          snykMonitorTargetReference: "latest"
           uploadToCodeScanning: "false"
           projectPrefix: test-operators
         env:
