@@ -260,6 +260,7 @@ jobs:
           image: drain-cleaner-amd64
           # Keep false to avoid uploading testing results to Snyk App
           snykMonitor: "true"
+          snykMonitorTargetReference: "latest"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
           projectPrefix: test-drain-cleaner
