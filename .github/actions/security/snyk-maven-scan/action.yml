@@ -13,6 +13,10 @@ inputs:
     description: "Whether to upload SARIF results to GitHub Code Scanning"
     required: false
     default: "true"
+  exclude:
+    description: "Comma-separated list of directories to exclude from scanning (e.g., 'mockkube,test')"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -24,22 +28,30 @@ runs:
       shell: bash
       continue-on-error: true
       run: |
+        EXCLUDE_FLAG=""
+        if [ -n "${{ inputs.exclude }}" ]; then
+          EXCLUDE_FLAG="--exclude=${{ inputs.exclude }}"
+        fi
         snyk test \
           --all-projects \
+          $EXCLUDE_FLAG \
           --sarif-file-output=snyk-maven-${{ inputs.projectPrefix }}.sarif \
           --json-file-output=snyk-results.json
 
     # This is used to set severity score to 0.0 for those results that has empty value for it.
     # Empty value is not supported by GitHub Code Scanning page
+    # It also set tool.driver.name to distinguish between different tools within UI
     - name: Sanitize SARIF security-severity values
       shell: bash
       run: |
         SARIF_FILE="snyk-maven-${{ inputs.projectPrefix }}.sarif"
         if [ -f "$SARIF_FILE" ]; then
-          jq '(.runs[].tool.driver.rules[]?.properties."security-severity") |=
-            if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
-            else .
-            end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
+          jq '
+            (.runs[].tool.driver.name) = "Snyk Maven" |
+            (.runs[].tool.driver.rules[]?.properties."security-severity") |=
+              if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
+              else .
+              end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
         fi
 
     - name: Upload SARIF to GitHub Code Scanning
@@ -64,4 +76,8 @@ runs:
       shell: bash
       continue-on-error: true
       run: |
-        snyk monitor --all-projects --target-reference="${GITHUB_REF_NAME}"
+        EXCLUDE_FLAG=""
+        if [ -n "${{ inputs.exclude }}" ]; then
+          EXCLUDE_FLAG="--exclude=${{ inputs.exclude }}"
+        fi
+        snyk monitor --all-projects $EXCLUDE_FLAG --target-reference="${GITHUB_REF_NAME}"
