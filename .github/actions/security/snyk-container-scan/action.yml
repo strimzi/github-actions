@@ -15,6 +15,10 @@ inputs:
   projectPrefix:
     description: "Project prefix for Snyk dashboard (e.g., 'strimzi')"
     required: true
+  snykMonitorTargetReference:
+    description: "Value for --target-reference in 'snyk container monitor' (e.g. release version). Defaults to the image tag."
+    required: false
+    default: ""
   uploadToCodeScanning:
     description: "Whether to upload SARIF results to GitHub Code Scanning"
     required: false
@@ -89,13 +93,18 @@ runs:
 
     # Monitor command is used for upload snapshot of the scan to Snyk App where Snyk will do daily scans and can generate reports
     - name: Run Snyk monitor
-      if: ${{ inputs.monitor == 'true' }}
+      if: ${{ inputs.snykMonitor == 'true' }}
       shell: bash
       continue-on-error: true
+      env:
+        TARGET_REFERENCE: ${{ inputs.snykMonitorTargetReference }}
       run: |
         if [ -n "$LOADED_IMAGE" ]; then
           MONITOR_PROJECT="${LOADED_IMAGE%%:*}"
           MONITOR_REVISION="${LOADED_IMAGE##*:}"
+          if [ -n "$TARGET_REFERENCE" ]; then
+            MONITOR_REVISION="$TARGET_REFERENCE"
+          fi
           snyk container monitor "$LOADED_IMAGE" \
             --project-name="$MONITOR_PROJECT" \
             --target-reference="$MONITOR_REVISION"

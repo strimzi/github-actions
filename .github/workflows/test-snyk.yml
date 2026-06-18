@@ -205,6 +205,7 @@ jobs:
           imageFile: docker-images/container-archives/${{ matrix.image }}.tar.gz
           image: ${{ matrix.image }}
           snykMonitor: "false"
+          snykMonitorTargetReference: "latest"
           uploadToCodeScanning: "false"
           projectPrefix: test-operators
         env:
@@ -255,6 +256,7 @@ jobs:
           image: drain-cleaner-amd64
           # Keep false to avoid uploading testing results to Snyk App
           snykMonitor: "false"
+          snykMonitorTargetReference: "latest"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
           projectPrefix: test-drain-cleaner
