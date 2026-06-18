@@ -25,6 +25,7 @@ runs:
       continue-on-error: true
       run: |
         snyk test \
+          --all-projects \
           --sarif-file-output=snyk-maven-${{ inputs.projectPrefix }}.sarif \
           --json-file-output=snyk-results.json
 
@@ -63,4 +64,4 @@ runs:
       shell: bash
       continue-on-error: true
       run: |
-        snyk monitor --target-reference="${GITHUB_REF_NAME}"
+        snyk monitor --all-projects --target-reference="${GITHUB_REF_NAME}"
