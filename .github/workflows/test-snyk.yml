@@ -59,7 +59,7 @@ jobs:
         uses: ./.github/actions/security/snyk-maven-scan
         with:
           # Keep false to avoid uploading testing results to Snyk App
-          snykMonitor: "true"
+          snykMonitor: "false"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
           projectPrefix: test-drain-cleaner
