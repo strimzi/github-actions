@@ -6,8 +6,8 @@ inputs:
     description: "Whether to also run 'snyk monitor'"
     required: false
     default: "false"
-  projectPrefix:
-    description: "Project prefix for Snyk dashboard and SARIF naming (e.g., 'strimzi')"
+  scanName:
+    description: "Name used for SARIF file naming, upload category, and tool display name (e.g., 'strimzi')"
     required: true
   uploadToCodeScanning:
     description: "Whether to upload SARIF results to GitHub Code Scanning"
@@ -35,7 +35,7 @@ runs:
         snyk test \
           --all-projects \
           $EXCLUDE_FLAG \
-          --sarif-file-output=snyk-maven-${{ inputs.projectPrefix }}.sarif \
+          --sarif-file-output=snyk-maven-${{ inputs.scanName }}.sarif \
           --json-file-output=snyk-results.json
 
     # This is used to set severity score to 0.0 for those results that has empty value for it.
@@ -44,10 +44,10 @@ runs:
     - name: Sanitize SARIF security-severity values
       shell: bash
       run: |
-        SARIF_FILE="snyk-maven-${{ inputs.projectPrefix }}.sarif"
+        SARIF_FILE="snyk-maven-${{ inputs.scanName }}.sarif"
         if [ -f "$SARIF_FILE" ]; then
-          jq '
-            (.runs[].tool.driver.name) = "Snyk Maven" |
+          jq --arg name "Snyk Maven (${{ inputs.scanName }})" '
+            (.runs[].tool.driver.name) = $name |
             (.runs[].tool.driver.rules[]?.properties."security-severity") |=
               if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
               else .
@@ -58,16 +58,16 @@ runs:
       uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
       if: ${{ always() && inputs.uploadToCodeScanning == 'true' }}
       with:
-        sarif_file: snyk-maven-${{ inputs.projectPrefix }}.sarif
-        category: snyk-maven-${{ inputs.projectPrefix }}
+        sarif_file: snyk-maven-${{ inputs.scanName }}.sarif
+        category: snyk-maven-${{ inputs.scanName }}
         wait-for-processing: true
 
     - name: Upload SARIF as workflow artifact
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: always()
       with:
-        name: snyk-maven-${{ inputs.projectPrefix }}.sarif
-        path: snyk-maven-${{ inputs.projectPrefix }}.sarif
+        name: snyk-maven-${{ inputs.scanName }}.sarif
+        path: snyk-maven-${{ inputs.scanName }}.sarif
         retention-days: 30
 
     # Monitor command is used for upload snapshot of the scan to Snyk App where Snyk will do daily scans and can generate reports

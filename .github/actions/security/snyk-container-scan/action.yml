@@ -12,9 +12,6 @@ inputs:
     description: "Whether to also run 'snyk container monitor'"
     required: false
     default: "false"
-  projectPrefix:
-    description: "Project prefix for Snyk dashboard (e.g., 'strimzi')"
-    required: true
   snykMonitorTargetReference:
     description: "Value for --target-reference in 'snyk container monitor' (e.g. release version). Defaults to the image tag."
     required: false
