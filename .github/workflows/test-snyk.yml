@@ -62,7 +62,7 @@ jobs:
           snykMonitor: "false"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
-          projectPrefix: test-drain-cleaner
+          scanName: test-drain-cleaner
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -207,7 +207,6 @@ jobs:
           snykMonitor: "false"
           snykMonitorTargetReference: "latest"
           uploadToCodeScanning: "false"
-          projectPrefix: test-operators
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -259,7 +258,6 @@ jobs:
           snykMonitorTargetReference: "latest"
           # Keep false to avoid uploading results to GitHub Code Scanning page
           uploadToCodeScanning: "false"
-          projectPrefix: test-drain-cleaner
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
