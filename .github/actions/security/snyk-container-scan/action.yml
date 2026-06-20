@@ -13,7 +13,7 @@ inputs:
     required: false
     default: "false"
   snykMonitorTargetReference:
-    description: "Value for --target-reference in 'snyk container monitor' (e.g. release version). Defaults to the image tag."
+    description: "Version prefix for --target-reference in 'snyk container monitor' (e.g. release version). Replaces only the version prefix of the image tag, preserving any suffix (e.g. kafka version, architecture). Defaults to the full image tag."
     required: false
     default: ""
   uploadToCodeScanning:
@@ -100,7 +100,13 @@ runs:
           MONITOR_PROJECT="${LOADED_IMAGE%%:*}"
           MONITOR_REVISION="${LOADED_IMAGE##*:}"
           if [ -n "$TARGET_REFERENCE" ]; then
-            MONITOR_REVISION="$TARGET_REFERENCE"
+            TAG_PREFIX="${MONITOR_REVISION%%-*}"
+            if [ "$TAG_PREFIX" != "$MONITOR_REVISION" ]; then
+              TAG_SUFFIX="${MONITOR_REVISION#*-}"
+              MONITOR_REVISION="${TARGET_REFERENCE}-${TAG_SUFFIX}"
+            else
+              MONITOR_REVISION="$TARGET_REFERENCE"
+            fi
           fi
           snyk container monitor "$LOADED_IMAGE" \
             --project-name="$MONITOR_PROJECT" \
