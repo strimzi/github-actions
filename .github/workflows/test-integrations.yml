@@ -235,7 +235,7 @@ jobs:
       helmChartName: ${{ matrix.project.helmChartName }}
       releaseVersion: ${{ matrix.project.releaseVersion }}
       imagesLocation: ${{ matrix.project.imagesLocation }}
-      clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild }}
-      skipTests: ${{ matrix.project.skipTests || false }}
+      clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild || false }}
+      skipTests: ${{ matrix.project.skipTests }}
       checkTests: ${{ matrix.project.checkTests }}
     secrets: inherit
