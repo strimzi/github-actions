@@ -28,7 +28,7 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
-            ref: "release-1.0.x"
+            ref: "release-1.1.x"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
@@ -39,6 +39,7 @@ jobs:
             releaseVersion: "6.6.6"
             imagesLocation: "./docker-images/container-archives"
             clusterOperatorBuild: true
+            skipTests: true
             checkTests: false
 
           # Kafka Bridge - Full pipeline with containers
@@ -53,7 +54,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6-rc1"
             imagesLocation: "kafka-bridge-amd64.tar.gz"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Access Operator - Full pipeline with containers
@@ -68,7 +69,7 @@ jobs:
             helmChartName: "strimzi-access-operator-helm-3-chart"
             releaseVersion: "6.6.6"
             imagesLocation: "access-operator-container-amd64.tar.gz"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # MQTT Bridge - Full pipeline with containers
@@ -83,7 +84,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "mqtt-bridge-amd64.tar.gz"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Drain Cleaner - Full pipeline with containers and Helm
@@ -98,7 +99,7 @@ jobs:
             helmChartName: "strimzi-drain-cleaner-helm-3-chart"
             releaseVersion: "6.6.6"
             imagesLocation: "drain-cleaner-container-amd64.tar.gz"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Client Examples - Containers only (no Maven deploy, no tests)
@@ -113,7 +114,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "none"
             imagesLocation: "*-amd64.tar.gz"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: false
 
           # Test Clients - Containers only (no Maven deploy)
@@ -128,7 +129,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "./docker-images/container-archives"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Metrics Reporter - Java only (no containers)
@@ -143,7 +144,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "none"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Kafka Quotas Plugin - Java only (no containers)
@@ -158,7 +159,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "none"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Kafka Kubernetes Config Provider - Java only (no containers)
@@ -173,7 +174,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "none"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Kafka OAuth - Java only (no containers)
@@ -188,7 +189,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "none"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Test Container - Java only (no containers)
@@ -203,7 +204,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "none"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
 
           # Test Connectors - Java only (no containers)
@@ -218,7 +219,7 @@ jobs:
             helmChartName: "none"
             releaseVersion: "6.6.6"
             imagesLocation: "none"
-            clusterOperatorBuild: false
+            skipTests: false
             checkTests: true
     
     uses: ./.github/workflows/reusable-test-integrations.yml
@@ -235,5 +236,6 @@ jobs:
       releaseVersion: ${{ matrix.project.releaseVersion }}
       imagesLocation: ${{ matrix.project.imagesLocation }}
       clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild }}
+      skipTests: ${{ matrix.project.skipTests || false }}
       checkTests: ${{ matrix.project.checkTests }}
     secrets: inherit

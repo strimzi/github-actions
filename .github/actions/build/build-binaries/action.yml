@@ -9,12 +9,12 @@ inputs:
   artifactSuffix:
     description: "Suffix/prefix for the uploaded artifact"
     required: true
-  clusterOperatorBuild:
-    description: "Enable Strimzi Operator specific build steps (Helm charts install, CRDs install, dashboards install, docs checks, uncommitted changes check)"
+  skipTests:
+    description: "Skip the test execution step and test result publishing (use when tests run in a separate workflow)"
     required: false
     default: "false"
-  checkReleasedFiles:
-    description: "Enable step for checking released files - using the `make release_files_check`"
+  clusterOperatorBuild:
+    description: "[Deprecated - use skipTests instead] When set to 'true', skips test execution. Makefile target steps are now auto-detected."
     required: false
     default: "false"
 
@@ -38,61 +38,45 @@ runs:
       env:
         MVN_ARGS: '-B -DskipTests'
 
+    #############################################################
+    # Optional build targets - each step runs only if the
+    # corresponding Makefile target exists in the project
+    #############################################################
     - name: Run SpotBugs
       shell: bash
-      run: |
-        if make -n spotbugs &>/dev/null; then
-          echo "Target exists"
-          make spotbugs
-        else
-          # TODO - Should be everywhere
-          echo "Target 'spotbugs' not found, skipping..."
-        fi
+      run: "${{ github.action_path }}/make.sh spotbugs"
 
-    #############################################################
-    # The following steps gated by clusterOperatorBuild check
-    # are used only by Strimzi Kafka Operator repository.
-    # The other projects shouldn't use them.
-    #############################################################
     - name: Setup dashboards for Helm Chart
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make dashboard_install"
+      run: "${{ github.action_path }}/make.sh dashboard_install"
 
     - name: Generate YAMLs from Helm Chart
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make helm_install"
+      run: "${{ github.action_path }}/make.sh helm_install"
 
     - name: Distribute CRDs
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make crd_install"
+      run: "${{ github.action_path }}/make.sh crd_install"
 
     - name: Run Helm Chart unit tests
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make helm_unittest"
+      run: "${{ github.action_path }}/make.sh helm_unittest"
 
     - name: Generate docs version files
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make docu_versions"
+      run: "${{ github.action_path }}/make.sh docu_versions"
 
     - name: Check docs
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make docu_check"
+      run: "${{ github.action_path }}/make.sh docu_check"
 
     - name: Run Shellcheck
-      if: ${{ inputs.clusterOperatorBuild == 'true' }}
       shell: bash
-      run: "make shellcheck"
+      run: "${{ github.action_path }}/make.sh shellcheck"
 
     - name: Check released files
-      if: ${{ inputs.clusterOperatorBuild == 'true' || inputs.checkReleasedFiles == 'true' }}
       shell: bash
-      run: "make release_files_check"
+      run: "${{ github.action_path }}/make.sh release_files_check"
 
     - name: Check for uncommitted files
       shell: bash
@@ -102,8 +86,7 @@ runs:
     # Common build steps
     #############################################################
     - name: Run tests and verification
-      # Tests for operators repo are in separated workflow and this is just a redundant step
-      if: ${{ inputs.clusterOperatorBuild != 'true' }}
+      if: ${{ inputs.skipTests != 'true' && inputs.clusterOperatorBuild != 'true' }}
       shell: bash
       run: |
           make java_install
@@ -146,7 +129,7 @@ runs:
 
     - name: Publish test results
       uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
-      if: always() && inputs.clusterOperatorBuild != 'true'
+      if: always() && inputs.skipTests != 'true' && inputs.clusterOperatorBuild != 'true'
       with:
         name: 'Unit & Integration tests'
         path: '**/TEST-*.xml'
