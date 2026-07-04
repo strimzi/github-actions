@@ -32,7 +32,7 @@ jobs:
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
-            modules: "./,crd-annotations,crd-generator,test,api,v1-api-conversion"
+            modules: "./,crd-annotations,crd-generator,test,api"
             nexusCheck: "strimzi"
             javaVersion: "21"
             helmChartName: "strimzi-kafka-operator-helm-3-chart"
