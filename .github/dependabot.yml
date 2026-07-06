@@ -9,3 +9,7 @@ updates:
       - "/.github/actions/utils/*"
     schedule:
       interval: "weekly"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
