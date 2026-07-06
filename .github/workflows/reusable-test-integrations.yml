@@ -48,9 +48,14 @@ on:
         required: true
         type: string
       clusterOperatorBuild:
-        description: "Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
+        description: "[Deprecated - use skipTests instead] Flag whether it is Strimzi Operator build or not (should be set only in Strimzi Kafka Operator repo)"
         required: false
         type: boolean
+      skipTests:
+        description: "Skip test execution in build-binaries (use when tests run in a separate workflow)"
+        required: false
+        type: boolean
+        default: false
       checkTests:
         description: "Flag whether unit tests should be run and verified during build (set to false for repos without tests)"
         required: false
@@ -110,6 +115,7 @@ jobs:
         with:
           mainJavaBuild: "true"
           artifactSuffix: ${{ inputs.artifactSuffix }}
+          skipTests: ${{ inputs.skipTests }}
           clusterOperatorBuild: ${{ inputs.clusterOperatorBuild }}
         env:
           # Skip just ITs and rerun unit tests in case of flakes

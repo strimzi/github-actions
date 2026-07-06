@@ -9,7 +9,7 @@ inputs:
   version:
     description: "Version"
     required: false
-    default: "v4.6.3"
+    default: "v4.53.3"
 
 runs:
   using: "composite"
