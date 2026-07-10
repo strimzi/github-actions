@@ -1,0 +1,100 @@
+name: "FOSSA Maven Scan"
+description: "Run FOSSA scan on Maven dependencies with license compliance and vulnerability analysis"
+
+inputs:
+  fossaTest:
+    description: "Whether to also run 'fossa test' for policy compliance checking"
+    required: false
+    default: "false"
+  scanName:
+    description: "Name used for artifact naming (e.g., 'strimzi')"
+    required: true
+  exclude:
+    description: "Comma-separated list of directories to exclude from scanning (e.g., 'mockkube,test')"
+    required: false
+    default: ""
+  fossaTeam:
+    description: "Team name that is used for uploading results."
+    required: false
+    default: "Strimzi"
+  branch:
+    description: "Branch name to associate with this scan in FOSSA (e.g., branch name or image tag)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install FOSSA CLI
+      shell: bash
+      run: |
+        curl -H 'Cache-Control: no-cache' \
+          https://raw.githubusercontent.com/fossas/fossa-cli/f9cd35ff5d917672d5433c46603de4ed92c53a0d/install-latest.sh | bash # v3.17.12
+
+    - name: Configure FOSSA
+      shell: bash
+      run: |
+        if [ -f .fossa.yml ]; then
+          echo "::warning::Existing .fossa.yml found in workspace — using project configuration instead of action defaults"
+        else
+          cp "${{ github.action_path }}/.fossa.yml" .fossa.yml
+        fi
+
+        if [ -n "${{ inputs.exclude }}" ]; then
+          echo "" >> .fossa.yml
+          echo "paths:" >> .fossa.yml
+          echo "  exclude:" >> .fossa.yml
+          IFS=',' read -ra DIRS <<< "${{ inputs.exclude }}"
+          for dir in "${DIRS[@]}"; do
+            dir=$(echo "$dir" | xargs)
+            echo "    - $dir/" >> .fossa.yml
+          done
+        fi
+
+    - name: Run FOSSA Analyze
+      shell: bash
+      continue-on-error: true
+      run: |
+        ANALYZE_LOG=$(mktemp)
+        set +e
+        fossa analyze \
+          --project "${{ inputs.scanName }}" \
+          --team "${{ inputs.fossaTeam }}" \
+          --branch "${{ inputs.branch }}" > "$ANALYZE_LOG" 2>&1
+        set -e
+        cat "$ANALYZE_LOG"
+        FOSSA_URL=$(grep -o 'https://app.fossa.com[^ ]*' "$ANALYZE_LOG" | head -1 || true)
+        echo "FOSSA_URL=$FOSSA_URL" >> "$GITHUB_ENV"
+        rm -f "$ANALYZE_LOG"
+
+    - name: Run FOSSA Test and Write Summary
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        TEST_OUTPUT=$(fossa test --project "${{ inputs.scanName }}" 2>&1)
+        TEST_EXIT_CODE=$?
+        set -e
+        echo "$TEST_OUTPUT"
+
+        if [ "${{ inputs.fossaTest }}" == "true" ]; then
+          if [ "$TEST_EXIT_CODE" -eq 0 ]; then
+            TEST_RESULT="✅ passed"
+          else
+            TEST_RESULT="❌ failed"
+          fi
+        else
+          TEST_RESULT="⏭️ skipped"
+        fi
+
+        echo "## FOSSA Scan Summary" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Type | Project | Report | Test |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|------|---------|--------|------|" >> "$GITHUB_STEP_SUMMARY"
+        if [ -n "$FOSSA_URL" ]; then
+          echo "| Maven | ${{ inputs.scanName }} | [View in FOSSA]($FOSSA_URL) | $TEST_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "| Maven | ${{ inputs.scanName }} | ❌ upload failed | $TEST_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::FOSSA analyze failed — no report URL found in output"
+          exit 1
+        fi

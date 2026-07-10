@@ -1,0 +1,6 @@
+version: 3
+
+maven:
+  scope-exclude:
+    - test
+    - provided

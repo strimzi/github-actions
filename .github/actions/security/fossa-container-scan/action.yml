@@ -1,0 +1,114 @@
+name: "FOSSA Container Scan"
+description: "Scan a single container image with FOSSA for license compliance and vulnerability analysis"
+
+inputs:
+  imageFile:
+    description: "Path to container image file for docker load"
+    required: true
+  image:
+    description: "Image name for artifact naming and categorization"
+    required: true
+  scanName:
+    description: "Name used as FOSSA project name. Defaults to the image name if not set."
+    required: false
+    default: ""
+  fossaTest:
+    description: "Whether to also run 'fossa container test' for policy compliance checking"
+    required: false
+    default: "false"
+  fossaTeam:
+    description: "Team name that is used for uploading results."
+    required: false
+    default: "Strimzi"
+  branch:
+    description: "Branch name to associate with this scan in FOSSA (e.g., branch name or image tag)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install FOSSA CLI
+      shell: bash
+      run: |
+        curl -H 'Cache-Control: no-cache' \
+          https://raw.githubusercontent.com/fossas/fossa-cli/f9cd35ff5d917672d5433c46603de4ed92c53a0d/install-latest.sh | bash # v3.17.12
+
+    - name: Load container image
+      shell: bash
+      env:
+        IMAGE_FILE: ${{ inputs.imageFile }}
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        if [ ! -f "$IMAGE_FILE" ]; then
+          echo "::error::Image file not found: $IMAGE_FILE"
+          exit 1
+        fi
+
+        LOAD_OUTPUT=$(docker load < "$IMAGE_FILE")
+        echo "$LOAD_OUTPUT"
+        LOADED_IMAGE=$(echo "$LOAD_OUTPUT" | grep "Loaded image" | sed 's/Loaded image: //')
+
+        if [ -z "$LOADED_IMAGE" ]; then
+          echo "::error::Could not determine loaded image tag for $IMAGE_NAME"
+          exit 1
+        fi
+
+        echo "LOADED_IMAGE=$LOADED_IMAGE" >> "$GITHUB_ENV"
+
+    - name: Run FOSSA Container Analyze
+      shell: bash
+      continue-on-error: true
+      run: |
+        ANALYZE_LOG=$(mktemp)
+        set +e
+        SCAN_NAME="${{ inputs.scanName }}"
+        if [ -z "$SCAN_NAME" ]; then
+          SCAN_NAME="${{ inputs.image }}"
+        fi
+        fossa container analyze \
+          --project "$SCAN_NAME" \
+          --team "${{ inputs.fossaTeam }}" \
+          --branch "${{ inputs.branch }}" \
+          "$LOADED_IMAGE" > "$ANALYZE_LOG" 2>&1
+        set -e
+        cat "$ANALYZE_LOG"
+        FOSSA_URL=$(grep -o 'https://app.fossa.com[^ ]*' "$ANALYZE_LOG" | head -1 || true)
+        echo "FOSSA_URL=$FOSSA_URL" >> "$GITHUB_ENV"
+        rm -f "$ANALYZE_LOG"
+
+    - name: Run FOSSA Test and Write Summary
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        SCAN_NAME="${{ inputs.scanName }}"
+        if [ -z "$SCAN_NAME" ]; then
+          SCAN_NAME="${{ inputs.image }}"
+        fi
+        TEST_OUTPUT=$(fossa container test --project "$SCAN_NAME" "$LOADED_IMAGE" 2>&1)
+        TEST_EXIT_CODE=$?
+        set -e
+        echo "$TEST_OUTPUT"
+
+        if [ "${{ inputs.fossaTest }}" == "true" ]; then
+          if [ "$TEST_EXIT_CODE" -eq 0 ]; then
+            TEST_RESULT="✅ passed"
+          else
+            TEST_RESULT="❌ failed"
+          fi
+        else
+          TEST_RESULT="⏭️ skipped"
+        fi
+
+        echo "## FOSSA Scan Summary" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Type | Image | Report | Test |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|------|-------|--------|------|" >> "$GITHUB_STEP_SUMMARY"
+        if [ -n "$FOSSA_URL" ]; then
+          echo "| Container | ${{ inputs.image }} | [View in FOSSA]($FOSSA_URL) | $TEST_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "| Container | ${{ inputs.image }} | ❌ upload failed | $TEST_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::FOSSA container analyze failed — no report URL found in output"
+          exit 1
+        fi

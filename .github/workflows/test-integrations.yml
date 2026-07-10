@@ -89,8 +89,7 @@ jobs:
 
           # Drain Cleaner - Full pipeline with containers and Helm
           - repo: "strimzi/drain-cleaner"
-            # Use 1.7.x once it will be prepared
-            ref: "main"
+            ref: "1.6.1"
             artifactSuffix: "drain-cleaner"
             architecture: "amd64"
             buildContainers: true
