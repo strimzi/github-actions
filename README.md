@@ -53,6 +53,17 @@ Actions for building, testing, and releasing Strimzi components.
 > The `build-binaries` action supports an `clusterOperatorBuild` input (default `false`) that enables Strimzi Kafka Operator specific build steps — Helm chart generation, CRD distribution, dashboard setup, documentation checks, and uncommitted changes verification.
 > Other repositories should leave this disabled.
 
+### Security Actions
+
+Actions for security scanning of dependencies and container images.
+
+| Action                              | Description                                                          | Key Inputs                                              |
+|-------------------------------------|----------------------------------------------------------------------|---------------------------------------------------------|
+| `security/snyk-maven-scan`         | Run Snyk scan on Maven dependencies with SARIF upload                | `scanName` (required), `snykMonitor`, `exclude`         |
+| `security/snyk-container-scan`     | Scan a container image with Snyk, upload results to Code Scanning    | `imageFile` (required), `image` (required), `snykMonitor` |
+| `security/fossa-maven-scan`        | Run FOSSA scan on Maven dependencies for license and vulnerability analysis | `scanName` (required), `fossaTest`, `exclude`    |
+| `security/fossa-container-scan`    | Scan a container image with FOSSA for license and vulnerability analysis | `imageFile` (required), `image` (required), `fossaTest` |
+
 ### Utils Actions
 
 Actions used as utils mostly in operators repository.
