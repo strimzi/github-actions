@@ -58,6 +58,7 @@ runs:
         ANALYZE_LOG=$(mktemp)
         set +e
         fossa analyze \
+          --experimental-block-first-party-scans \
           --project "${{ inputs.scanName }}" \
           --team "${{ inputs.fossaTeam }}" \
           --branch "${{ inputs.branch }}" > "$ANALYZE_LOG" 2>&1
