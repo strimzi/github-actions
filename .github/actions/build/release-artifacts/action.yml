@@ -27,21 +27,39 @@ runs:
         RELEASE_VERSION: ${{ inputs.releaseVersion }}
         MVN_ARGS: '-B -DskipTests'
 
+    # Find release archives using case-insensitive search (Maven may change case, e.g. rc1 -> RC1)
+    - name: Find release archives for attestation
+      id: find-archives
+      shell: bash
+      run: |
+        FILES=$(find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
+                                   -iname "*${{ inputs.releaseVersion }}*.zip" -o \
+                                   -iname "*${{ inputs.releaseVersion }}*.tgz" \))
+        if [ -n "$FILES" ]; then
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<EOF"
+            echo "$FILES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Found $(echo "$FILES" | wc -l | tr -d ' ') release archive(s) for attestation"
+        else
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No release archives found for attestation"
+        fi
+
     # Creates attestation for release artifacts
     - name: Attest release archives
-      if: ${{ github.event_name != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' && steps.find-archives.outputs.found == 'true' }}
       id: attest
       uses: ./.github/actions/build/attest-artifact
       with:
         mode: blob
-        subject-path: |
-          ./**/*${{ inputs.releaseVersion }}*.tar.gz
-          ./**/*${{ inputs.releaseVersion }}*.zip
-          ./**/*${{ inputs.releaseVersion }}*.tgz
+        subject-path: ${{ steps.find-archives.outputs.files }}
 
     # Copy attestation provenance file in .intoto.jsonl format to add it into release tarball
     - name: Copy attestation bundle
-      if: ${{ github.event_name != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' && steps.find-archives.outputs.found == 'true' }}
       shell: bash
       run: cp "${{ steps.attest.outputs.bundle-path }}" "./release-${{ inputs.releaseVersion }}.intoto.jsonl"
 
