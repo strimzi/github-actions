@@ -1,0 +1,54 @@
+name: "Attest Artifact"
+description: "Creates provenance or SBOM attestation for file or OCI artifacts using actions/attest"
+
+inputs:
+  mode:
+    description: "Attestation mode: blob (file artifacts), oci (container/Helm provenance), or sbom (SBOM attestation for OCI image)"
+    required: true
+  subject-path:
+    description: "Path/glob to file artifacts (blob mode only)"
+    required: false
+  subject-prefix:
+    description: "Registry/org prefix for OCI artifacts, e.g. quay.io/strimzi (oci and sbom modes)"
+    required: false
+  image-name:
+    description: "Image name, e.g. operator (oci and sbom modes)"
+    required: false
+  subject-digest:
+    description: "Image digest, e.g. sha256:abc123 (oci and sbom modes)"
+    required: false
+  sbom-path:
+    description: "Path to SPDX/CycloneDX SBOM JSON file (sbom mode only)"
+    required: false
+
+outputs:
+  bundle-path:
+    description: "Path to the generated attestation bundle"
+    value: ${{ steps.attest-blob.outputs.bundle-path || steps.attest-oci.outputs.bundle-path || steps.attest-sbom.outputs.bundle-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Attest file artifact
+      id: attest-blob
+      if: ${{ inputs.mode == 'blob' }}
+      uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+      with:
+        subject-path: ${{ inputs.subject-path }}
+
+    - name: Attest OCI artifact provenance
+      id: attest-oci
+      if: ${{ inputs.mode == 'oci' }}
+      uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+      with:
+        subject-name: ${{ inputs.subject-prefix }}/${{ inputs.image-name }}
+        subject-digest: ${{ inputs.subject-digest }}
+
+    - name: Attest SBOM for OCI artifact
+      id: attest-sbom
+      if: ${{ inputs.mode == 'sbom' }}
+      uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+      with:
+        subject-name: ${{ inputs.subject-prefix }}/${{ inputs.image-name }}
+        subject-digest: ${{ inputs.subject-digest }}
+        sbom-path: ${{ inputs.sbom-path }}

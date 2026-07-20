@@ -70,7 +70,8 @@ on:
 # Declare default permissions as read only
 permissions:
   contents: read
-  id-token: write  # Required for OIDC keyless signing
+  id-token: write       # Required for OIDC keyless signing
+  attestations: write   # Required for actions/attest provenance
 
 jobs:
   test-build-binaries:
@@ -305,6 +306,8 @@ jobs:
       - test-build-containers
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      images: ${{ steps.push.outputs.images }}
     steps:
       - name: Checkout ${{ inputs.repo }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -341,6 +344,7 @@ jobs:
         uses: ./.github/actions/dependencies/install-syft
 
       - name: Push containers using push-containers action
+        id: push
         uses: ./.github/actions/build/push-containers
         with:
           registryUser: "strimzi"
@@ -348,6 +352,72 @@ jobs:
           containerRegistry: "registry.strimzi:443"
           architectures: "amd64"
           artifactSuffix: ${{ inputs.artifactSuffix }}
+
+      - name: Verify images discovery output
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          IMAGES='${{ steps.push.outputs.images }}'
+          COUNT=$(echo "$IMAGES" | jq 'length')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "❌ No images discovered for attestation"
+            exit 1
+          fi
+          echo "✓ Discovered $COUNT image(s) for attestation:"
+          echo "$IMAGES" | jq '.'
+
+  test-attest-containers:
+    name: Attest Containers - ${{ matrix.image.name }}
+    if: ${{ github.event_name != 'pull_request' && inputs.buildContainers == true }}
+    needs: test-push-containers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.test-push-containers.outputs.images) }}
+    steps:
+      - name: Checkout ${{ inputs.repo }}
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
+
+      - name: Checkout github-actions
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: strimzi/github-actions
+          ref: ${{ inputs.githubActionsRef || github.sha }}
+          path: github-actions
+
+      - name: Setup actions for testing
+        run: |
+          mkdir -p .github/actions
+          cp -r github-actions/.github/actions/* .github/actions/
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: SBOMs-${{ inputs.artifactSuffix }}-latest.tar.gz
+
+      - name: Extract SBOMs
+        run: tar -xzf sbom.tar.gz
+
+      - name: Attest container image provenance
+        uses: ./.github/actions/build/attest-artifact
+        with:
+          mode: oci
+          subject-prefix: registry.strimzi:443/strimzi
+          image-name: ${{ matrix.image.name }}
+          subject-digest: ${{ matrix.image.digest }}
+
+      - name: Attest container SBOM
+        uses: ./.github/actions/build/attest-artifact
+        with:
+          mode: sbom
+          subject-prefix: registry.strimzi:443/strimzi
+          image-name: ${{ matrix.image.name }}
+          subject-digest: ${{ matrix.image.digest }}
+          sbom-path: ./${{ matrix.image.sbom }}
 
   test-release-artifacts:
     name: Release Artifacts
@@ -413,6 +483,19 @@ jobs:
           echo "Release tarball contents:"
           tar -tf "$TARBALL"
           echo "✓ Release artifacts created successfully"
+
+      - name: Verify attestation bundle in tarball
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          TARBALL="release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+          INTOTO_COUNT=$(tar -tf "$TARBALL" | grep -c '\.intoto\.jsonl$' || true)
+          if [ "$INTOTO_COUNT" -eq 0 ]; then
+            echo "❌ No .intoto.jsonl attestation found in release tarball"
+            tar -tf "$TARBALL"
+            exit 1
+          fi
+          echo "✓ Found $INTOTO_COUNT attestation bundle(s) in release tarball:"
+          tar -tf "$TARBALL" | grep '\.intoto\.jsonl$'
 
       # This check is currently only for Operators repo as yamls were missing in release tar ball
       - name: Verify YAML release artifacts in tarball

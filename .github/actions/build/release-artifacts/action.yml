@@ -27,13 +27,32 @@ runs:
         RELEASE_VERSION: ${{ inputs.releaseVersion }}
         MVN_ARGS: '-B -DskipTests'
 
+    # Creates attestation for release artifacts
+    - name: Attest release archives
+      if: ${{ github.event_name != 'pull_request' }}
+      id: attest
+      uses: ./.github/actions/build/attest-artifact
+      with:
+        mode: blob
+        subject-path: |
+          ./**/*${{ inputs.releaseVersion }}*.tar.gz
+          ./**/*${{ inputs.releaseVersion }}*.zip
+          ./**/*${{ inputs.releaseVersion }}*.tgz
+
+    # Copy attestation provenance file in .intoto.jsonl format to add it into release tarball
+    - name: Copy attestation bundle
+      if: ${{ github.event_name != 'pull_request' }}
+      shell: bash
+      run: cp "${{ steps.attest.outputs.bundle-path }}" "./release-${{ inputs.releaseVersion }}.intoto.jsonl"
+
     - name: Create release tarball
       shell: bash
       run: |
         find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
                           -iname "*${{ inputs.releaseVersion }}*.zip" -o \
                           -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
-                          -iname "*${{ inputs.releaseVersion }}*.yaml" \) \
+                          -iname "*${{ inputs.releaseVersion }}*.yaml" -o \
+                          -iname "*.intoto.jsonl" \) \
           -exec tar -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
 
     - name: Upload release artifacts

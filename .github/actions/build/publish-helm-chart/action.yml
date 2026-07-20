@@ -44,5 +44,19 @@ runs:
       run: helm registry login -u ${{ inputs.registryUser }} -p ${{ inputs.registryPassword }} ${{ inputs.containerRegistry }}
 
     - name: Push Helm Chart to OCI registry
+      id: helm-push
       shell: bash
-      run: helm push ${{ inputs.helmChartName }}-${{ inputs.releaseVersion }}.tgz oci://${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}
+      run: |
+        PUSH_OUTPUT=$(helm push ${{ inputs.helmChartName }}-${{ inputs.releaseVersion }}.tgz oci://${{ inputs.containerRegistry }}/${{ inputs.containerOrg }} 2>&1)
+        echo "$PUSH_OUTPUT"
+        DIGEST=$(echo "$PUSH_OUTPUT" | grep "Digest:" | awk '{print $2}')
+        echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+    - name: Attest Helm chart
+      if: ${{ github.event_name != 'pull_request' }}
+      uses: ./.github/actions/build/attest-artifact
+      with:
+        mode: oci
+        subject-prefix: ${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}
+        image-name: ${{ inputs.helmChartName }}
+        subject-digest: ${{ steps.helm-push.outputs.digest }}
