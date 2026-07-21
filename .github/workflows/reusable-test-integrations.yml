@@ -411,6 +411,7 @@ jobs:
         with:
           artifactSuffix: "${{ inputs.artifactSuffix }}"
           releaseVersion: ${{ inputs.releaseVersion }}
+          attestDryRun: "true"
 
       - name: Verify release outputs
         run: |
@@ -505,3 +506,4 @@ jobs:
           helmChartName: ${{ inputs.helmChartName}}
           releaseVersion: ${{ inputs.releaseVersion }}
           artifactSuffix: ${{ inputs.artifactSuffix }}
+          attestDryRun: "true"

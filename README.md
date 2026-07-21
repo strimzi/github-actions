@@ -64,9 +64,9 @@ The action supports three modes:
 
 | Mode   | Use case                            | Key inputs                                              |
 |--------|-------------------------------------|---------------------------------------------------------|
-| `blob` | Release archives (.tar.gz, .zip)    | `subject-path` (glob)                                   |
-| `oci`  | Container/Helm image provenance     | `subject-prefix`, `image-name`, `subject-digest`        |
-| `sbom` | SBOM attestation for OCI image      | `subject-prefix`, `image-name`, `subject-digest`, `sbom-path` |
+| `blob` | Release archives (.tar.gz, .zip)    | `subjectPath` (glob)                                    |
+| `oci`  | Container/Helm image provenance     | `subjectPrefix`, `imageName`, `subjectDigest`            |
+| `sbom` | SBOM attestation for OCI image      | `subjectPrefix`, `imageName`, `subjectDigest`, `sbomPath` |
 
 #### Built-in attestation
 
@@ -115,18 +115,18 @@ permissions:
         uses: ./.github/actions/build/attest-artifact
         with:
           mode: oci
-          subject-prefix: quay.io/strimzi
-          image-name: ${{ matrix.image.name }}
-          subject-digest: ${{ matrix.image.digest }}
+          subjectPrefix: quay.io/strimzi
+          imageName: ${{ matrix.image.name }}
+          subjectDigest: ${{ matrix.image.digest }}
 
       - name: Attest container SBOM
         uses: ./.github/actions/build/attest-artifact
         with:
           mode: sbom
-          subject-prefix: quay.io/strimzi
-          image-name: ${{ matrix.image.name }}
-          subject-digest: ${{ matrix.image.digest }}
-          sbom-path: ./${{ matrix.image.sbom }}
+          subjectPrefix: quay.io/strimzi
+          imageName: ${{ matrix.image.name }}
+          subjectDigest: ${{ matrix.image.digest }}
+          sbomPath: ./${{ matrix.image.sbom }}
 ```
 
 #### Verification

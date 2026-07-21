@@ -8,6 +8,10 @@ inputs:
   artifactSuffix:
     description: "Suffix of archive with images"
     required: true
+  attestDryRun:
+    description: "Run attestation in dry-run mode (log only, no real attestation)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -55,13 +59,14 @@ runs:
       uses: ./.github/actions/build/attest-artifact
       with:
         mode: blob
-        subject-path: ${{ steps.find-archives.outputs.files }}
+        subjectPath: ${{ steps.find-archives.outputs.files }}
+        dryRun: ${{ inputs.attestDryRun }}
 
     # Copy attestation provenance file in .intoto.jsonl format to add it into release tarball
     - name: Copy attestation bundle
-      if: ${{ github.event_name != 'pull_request' && steps.find-archives.outputs.found == 'true' }}
+      if: ${{ github.event_name != 'pull_request' && steps.find-archives.outputs.found == 'true' && inputs.attestDryRun != 'true' }}
       shell: bash
-      run: cp "${{ steps.attest.outputs.bundle-path }}" "./release-${{ inputs.releaseVersion }}.intoto.jsonl"
+      run: cp "${{ steps.attest.outputs.bundlePath }}" "./release-${{ inputs.releaseVersion }}.intoto.jsonl"
 
     - name: Create release tarball
       shell: bash
