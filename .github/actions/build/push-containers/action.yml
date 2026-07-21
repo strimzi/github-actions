@@ -31,6 +31,11 @@ inputs:
     description: "Suffix of archive with images"
     required: true
 
+outputs:
+  images:
+    description: "JSON array of {name, digest} for multi-image attestation via attest-containers.yml"
+    value: ${{ steps.discover-images.outputs.images }}
+
 runs:
   using: "composite"
   steps:
@@ -130,6 +135,26 @@ runs:
         DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
         DOCKER_ORG: ${{ inputs.containerOrg }}
         DOCKER_TAG: ${{ inputs.containerTag }}
+
+    # Generates a list of images and it's digest for attestation
+    - name: Discover container images for attestation
+      id: discover-images
+      shell: bash
+      run: |
+        images="[]"
+        if [ -d "./sbom" ]; then
+          for sbom_file in $(find ./sbom -name "*.json" -type f | sort); do
+            relative="${sbom_file#./sbom/}"
+            after_org="${relative#*${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}/}"
+            name=$(echo "$after_org" | cut -d'/' -f1)
+            digest=$(basename "$sbom_file" .json)
+            images=$(echo "$images" | jq -c --arg n "$name" --arg d "$digest" --arg s "$relative" \
+              '. + [{"name": $n, "digest": $d, "sbom": $s}]')
+            echo "Found image: ${name} @ ${digest} (${relative})"
+          done
+        fi
+        echo "images=${images}" >> "$GITHUB_OUTPUT"
+        echo "Discovered $(echo "$images" | jq 'length') image(s) for attestation"
 
     - name: Create SBOM archive
       # This condition is required for properly running the tests

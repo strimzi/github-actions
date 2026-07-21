@@ -25,6 +25,10 @@ inputs:
   registryPassword:
     description: "Container registry password"
     required: true
+  attestDryRun:
+    description: "Run attestation in dry-run mode (log only, no real attestation)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -44,5 +48,20 @@ runs:
       run: helm registry login -u ${{ inputs.registryUser }} -p ${{ inputs.registryPassword }} ${{ inputs.containerRegistry }}
 
     - name: Push Helm Chart to OCI registry
+      id: helm-push
       shell: bash
-      run: helm push ${{ inputs.helmChartName }}-${{ inputs.releaseVersion }}.tgz oci://${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}
+      run: |
+        PUSH_OUTPUT=$(helm push ${{ inputs.helmChartName }}-${{ inputs.releaseVersion }}.tgz oci://${{ inputs.containerRegistry }}/${{ inputs.containerOrg }} 2>&1)
+        echo "$PUSH_OUTPUT"
+        DIGEST=$(echo "$PUSH_OUTPUT" | grep "Digest:" | awk '{print $2}')
+        echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+    - name: Attest Helm chart
+      if: ${{ github.event_name != 'pull_request' }}
+      uses: ./.github/actions/build/attest-artifact
+      with:
+        mode: oci
+        subjectPrefix: ${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}
+        imageName: ${{ inputs.helmChartName }}
+        subjectDigest: ${{ steps.helm-push.outputs.digest }}
+        dryRun: ${{ inputs.attestDryRun }}
