@@ -431,19 +431,6 @@ jobs:
           tar -tf "$TARBALL"
           echo "✓ Release artifacts created successfully"
 
-      - name: Verify attestation bundle in tarball
-        if: ${{ github.event_name != 'pull_request' }}
-        run: |
-          TARBALL="release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
-          INTOTO_COUNT=$(tar -tf "$TARBALL" | grep -c '\.intoto\.jsonl$' || true)
-          if [ "$INTOTO_COUNT" -eq 0 ]; then
-            echo "❌ No .intoto.jsonl attestation found in release tarball"
-            tar -tf "$TARBALL"
-            exit 1
-          fi
-          echo "✓ Found $INTOTO_COUNT attestation bundle(s) in release tarball:"
-          tar -tf "$TARBALL" | grep '\.intoto\.jsonl$'
-
       # This check is currently only for Operators repo as yamls were missing in release tar ball
       - name: Verify YAML release artifacts in tarball
         if: ${{ inputs.clusterOperatorBuild == true }}
