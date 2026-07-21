@@ -52,3 +52,27 @@ runs:
         subject-name: ${{ inputs.subject-prefix }}/${{ inputs.image-name }}
         subject-digest: ${{ inputs.subject-digest }}
         sbom-path: ${{ inputs.sbom-path }}
+
+    - name: Attestation summary
+      shell: bash
+      run: |
+        echo "::group::Attestation Summary"
+        echo "Mode: ${{ inputs.mode }}"
+        if [ "${{ inputs.mode }}" = "blob" ]; then
+          echo "Subject: ${{ inputs.subject-path }}"
+        else
+          echo "Subject: ${{ inputs.subject-prefix }}/${{ inputs.image-name }}@${{ inputs.subject-digest }}"
+        fi
+        if [ "${{ inputs.mode }}" = "sbom" ]; then
+          echo "SBOM: ${{ inputs.sbom-path }}"
+        fi
+        URL="${{ steps.attest-blob.outputs.attestation-url }}${{ steps.attest-oci.outputs.attestation-url }}${{ steps.attest-sbom.outputs.attestation-url }}"
+        echo "Attestation URL: ${URL}"
+        echo ""
+        echo "To verify this attestation, run:"
+        if [ "${{ inputs.mode }}" = "blob" ]; then
+          echo "  gh attestation verify <artifact-file> --repo ${{ github.repository }}"
+        else
+          echo "  gh attestation verify oci://${{ inputs.subject-prefix }}/${{ inputs.image-name }}@${{ inputs.subject-digest }} --repo ${{ github.repository }}"
+        fi
+        echo "::endgroup::"
