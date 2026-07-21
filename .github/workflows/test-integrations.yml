@@ -12,7 +12,8 @@ on:
 # Declare default permissions as read only
 permissions:
   contents: read
-  id-token: write  # Required for OIDC keyless signing
+  id-token: write       # Required for OIDC keyless signing
+  attestations: write   # Required for actions/attest provenance
 
 # Cancel previous builds on the same branch/PR
 concurrency:
