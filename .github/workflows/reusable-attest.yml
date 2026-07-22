@@ -90,12 +90,19 @@ jobs:
         run: |
           cp "${{ steps.attest.outputs.bundle-path }}" "release-workdir/release-${{ inputs.releaseVersion }}.intoto.jsonl"
           rm release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+          TARBALL="../release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+          cd release-workdir
           find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
                             -iname "*${{ inputs.releaseVersion }}*.zip" -o \
                             -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
                             -iname "*${{ inputs.releaseVersion }}*.yaml" -o \
                             -iname "*.intoto.jsonl" \) \
-            -exec tar -C release-workdir -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
+            -exec tar -rvf "${TARBALL}" {} \;
+          
+          if ! tar -tf "${TARBALL}" | grep -q 'intoto.jsonl'; then
+            echo "::error::Attestation bundle missing from rebuilt release tar"
+            exit 1
+          fi
 
       - name: Re-upload release artifact with attestation
         if: ${{ steps.find-archives.outputs.found == 'true' }}
