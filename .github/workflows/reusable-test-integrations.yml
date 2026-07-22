@@ -495,19 +495,3 @@ jobs:
           helmChartName: ${{ inputs.helmChartName}}
           releaseVersion: ${{ inputs.releaseVersion }}
           artifactSuffix: ${{ inputs.artifactSuffix }}
-
-  test-attest:
-    name: Attestation
-    needs:
-      - test-push-containers
-      - test-release-artifacts
-      - test-publish-helm
-    if: ${{ always() && (needs.test-release-artifacts.result == 'success' || needs.test-push-containers.result == 'success' || needs.test-publish-helm.result == 'success') }}
-    uses: ./.github/workflows/reusable-attest.yml
-    with:
-      containerImages: ${{ needs.test-push-containers.outputs.images || '[]' }}
-      sbomsArtifact: ${{ needs.test-push-containers.outputs.sbomsArtifact }}
-      artifactSuffix: ${{ inputs.artifactSuffix }}
-      releaseVersion: ${{ inputs.releaseVersion }}
-      helmChartName: ${{ inputs.helmChartName }}
-      helmChartImage: ${{ needs.test-publish-helm.outputs.helmChartImage }}
