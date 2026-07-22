@@ -57,6 +57,17 @@ jobs:
           mkdir -p release-workdir
           tar -xf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar -C release-workdir
 
+      - name: Download SBOMs artifact
+        if: ${{ inputs.sbomsArtifact != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.sbomsArtifact }}
+
+      - name: Copy SBOMs into release workdir
+        if: ${{ inputs.sbomsArtifact != '' }}
+        shell: bash
+        run: cp sbom.tar.gz release-workdir/
+
       - name: Find release archives
         id: find-archives
         shell: bash
@@ -84,7 +95,7 @@ jobs:
         with:
           subject-path: ${{ steps.find-archives.outputs.files }}
 
-      - name: Add attestation bundle to release tar
+      - name: Add attestation bundle and SBOMs to release tar
         if: ${{ steps.find-archives.outputs.found == 'true' }}
         shell: bash
         run: |
@@ -96,7 +107,8 @@ jobs:
                             -iname "*${{ inputs.releaseVersion }}*.zip" -o \
                             -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
                             -iname "*${{ inputs.releaseVersion }}*.yaml" -o \
-                            -iname "*.intoto.jsonl" \) \
+                            -iname "*.intoto.jsonl" -o \
+                            -name "sbom.tar.gz" \) \
             -exec tar -rvf "${TARBALL}" {} \;
           
           if ! tar -tf "${TARBALL}" | grep -q 'intoto.jsonl'; then
