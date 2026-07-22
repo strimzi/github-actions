@@ -1,0 +1,161 @@
+name: Attestation
+
+on:
+  workflow_call:
+    inputs:
+      containerImages:
+        description: "JSON array of {name, digest} from push-containers"
+        required: false
+        type: string
+        default: "[]"
+      artifactSuffix:
+        description: "Suffix for the release artifact name (e.g. kafka-bridge)"
+        required: false
+        type: string
+        default: ""
+      releaseVersion:
+        description: "Release version for finding archives in the release tar"
+        required: false
+        type: string
+        default: ""
+      helmChartName:
+        description: "Helm chart name (used for conditional logic, skip when empty or 'none')"
+        required: false
+        type: string
+        default: ""
+      helmChartImage:
+        description: "Full OCI reference with digest (e.g. quay.io/strimzi-helm/chart@sha256:abc123)"
+        required: false
+        type: string
+        default: ""
+      sbomsArtifact:
+        description: "Name of the SBOMs artifact from push-containers (e.g. SBOMs-kafka-bridge-latest.tar.gz)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  attest-release:
+    name: Attest Release Archives
+    if: ${{ inputs.releaseVersion != '' && inputs.releaseVersion != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+
+      - name: Extract release tar
+        shell: bash
+        run: |
+          mkdir -p release-workdir
+          tar -xf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar -C release-workdir
+
+      - name: Find release archives
+        id: find-archives
+        shell: bash
+        run: |
+          FILES=$(find release-workdir -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
+                                                   -iname "*${{ inputs.releaseVersion }}*.zip" -o \
+                                                   -iname "*${{ inputs.releaseVersion }}*.tgz" \))
+          if [ -n "$FILES" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "files<<EOF"
+              echo "$FILES"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "Found $(echo "$FILES" | wc -l | tr -d ' ') release archive(s) for attestation"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No release archives found for attestation"
+          fi
+
+      - name: Attest release archives
+        if: ${{ steps.find-archives.outputs.found == 'true' }}
+        id: attest
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: ${{ steps.find-archives.outputs.files }}
+
+      - name: Add attestation bundle to release tar
+        if: ${{ steps.find-archives.outputs.found == 'true' }}
+        shell: bash
+        run: |
+          cp "${{ steps.attest.outputs.bundle-path }}" "release-workdir/release-${{ inputs.releaseVersion }}.intoto.jsonl"
+          rm release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+          find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
+                            -iname "*${{ inputs.releaseVersion }}*.zip" -o \
+                            -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
+                            -iname "*${{ inputs.releaseVersion }}*.yaml" -o \
+                            -iname "*.intoto.jsonl" \) \
+            -exec tar -C release-workdir -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
+
+      - name: Re-upload release artifact with attestation
+        if: ${{ steps.find-archives.outputs.found == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+          path: release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
+          overwrite: true
+          retention-days: 30
+
+  attest-helm:
+    name: Attest Helm Chart
+    if: ${{ inputs.helmChartName != '' && inputs.helmChartName != 'none' && inputs.helmChartImage != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Parse Helm chart image reference
+        id: parse
+        shell: bash
+        run: |
+          IMAGE="${{ inputs.helmChartImage }}"
+          echo "subject-name=${IMAGE%%@*}" >> "$GITHUB_OUTPUT"
+          echo "subject-digest=${IMAGE##*@}" >> "$GITHUB_OUTPUT"
+
+      - name: Attest Helm chart
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ${{ steps.parse.outputs.subject-name }}
+          subject-digest: ${{ steps.parse.outputs.subject-digest }}
+
+  attest-containers:
+    name: Attest Container Image
+    if: ${{ inputs.containerImages != '[]' && inputs.containerImages != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        image: ${{ fromJSON(inputs.containerImages) }}
+    steps:
+      - name: Attest container image - ${{ matrix.image.name }}
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ${{ matrix.image.name }}
+          subject-digest: ${{ matrix.image.digest }}
+
+      - name: Download SBOMs artifact
+        if: ${{ inputs.sbomsArtifact != '' && matrix.image.sbom != '' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.sbomsArtifact }}
+
+      - name: Extract SBOMs
+        if: ${{ inputs.sbomsArtifact != '' && matrix.image.sbom != '' }}
+        shell: bash
+        run: tar -xzf sbom.tar.gz
+
+      - name: Attest SBOM - ${{ matrix.image.sbom }}
+        if: ${{ inputs.sbomsArtifact != '' && matrix.image.sbom != '' }}
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ${{ matrix.image.name }}
+          subject-digest: ${{ matrix.image.digest }}
+          sbom-path: ${{ matrix.image.sbom }}

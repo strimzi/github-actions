@@ -25,10 +25,10 @@ inputs:
   registryPassword:
     description: "Container registry password"
     required: true
-  attestDryRun:
-    description: "Run attestation in dry-run mode (log only, no real attestation)"
-    required: false
-    default: "false"
+outputs:
+  image:
+    description: "Full OCI image reference with digest (e.g. quay.io/strimzi-helm/chart@sha256:abc)"
+    value: ${{ steps.helm-push.outputs.image }}
 
 runs:
   using: "composite"
@@ -55,13 +55,4 @@ runs:
         echo "$PUSH_OUTPUT"
         DIGEST=$(echo "$PUSH_OUTPUT" | grep "Digest:" | awk '{print $2}')
         echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
-
-    - name: Attest Helm chart
-      if: ${{ github.event_name != 'pull_request' }}
-      uses: ./.github/actions/build/attest-artifact
-      with:
-        mode: oci
-        subjectPrefix: ${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}
-        imageName: ${{ inputs.helmChartName }}
-        subjectDigest: ${{ steps.helm-push.outputs.digest }}
-        dryRun: ${{ inputs.attestDryRun }}
+        echo "image=${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}/${{ inputs.helmChartName }}@${DIGEST}" >> "$GITHUB_OUTPUT"

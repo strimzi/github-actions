@@ -308,6 +308,7 @@ jobs:
     timeout-minutes: 20
     outputs:
       images: ${{ steps.push.outputs.images }}
+      sbomsArtifact: ${{ steps.push.outputs.sbomsArtifact }}
     steps:
       - name: Checkout ${{ inputs.repo }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -411,7 +412,6 @@ jobs:
         with:
           artifactSuffix: "${{ inputs.artifactSuffix }}"
           releaseVersion: ${{ inputs.releaseVersion }}
-          attestDryRun: "true"
 
       - name: Verify release outputs
         run: |
@@ -454,7 +454,8 @@ jobs:
     needs: test-release-artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 15
-  
+    outputs:
+      helmChartImage: ${{ steps.publish.outputs.image }}
     steps:
       - name: Checkout ${{ inputs.repo }}
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -485,6 +486,7 @@ jobs:
         uses: ./.github/actions/dependencies/install-helm
 
       - name: Publish Helm charts using publish-helm action
+        id: publish
         uses: ./.github/actions/build/publish-helm-chart
         with:
           registryUser: "strimzi"
@@ -493,4 +495,19 @@ jobs:
           helmChartName: ${{ inputs.helmChartName}}
           releaseVersion: ${{ inputs.releaseVersion }}
           artifactSuffix: ${{ inputs.artifactSuffix }}
-          attestDryRun: "true"
+
+  test-attest:
+    name: Attestation
+    needs:
+      - test-push-containers
+      - test-release-artifacts
+      - test-publish-helm
+    if: ${{ always() && (needs.test-release-artifacts.result == 'success' || needs.test-push-containers.result == 'success' || needs.test-publish-helm.result == 'success') }}
+    uses: ./.github/workflows/reusable-attest.yml
+    with:
+      containerImages: ${{ needs.test-push-containers.outputs.images || '[]' }}
+      sbomsArtifact: ${{ needs.test-push-containers.outputs.sbomsArtifact }}
+      artifactSuffix: ${{ inputs.artifactSuffix }}
+      releaseVersion: ${{ inputs.releaseVersion }}
+      helmChartName: ${{ inputs.helmChartName }}
+      helmChartImage: ${{ needs.test-publish-helm.outputs.helmChartImage }}
