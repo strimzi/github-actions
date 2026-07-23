@@ -33,8 +33,11 @@ inputs:
 
 outputs:
   images:
-    description: "JSON array of {name, digest} for multi-image attestation via attest-containers.yml"
+    description: "JSON array of {name, digest, sbom} for multi-image attestation via reusable-attest.yml"
     value: ${{ steps.discover-images.outputs.images }}
+  sbomsArtifact:
+    description: "Name of the uploaded SBOMs artifact"
+    value: SBOMs-${{ inputs.artifactSuffix }}-${{ inputs.containerTag }}.tar.gz
 
 runs:
   using: "composite"
@@ -146,7 +149,7 @@ runs:
           for sbom_file in $(find ./sbom -name "*.json" -type f | sort); do
             relative="${sbom_file#./sbom/}"
             after_org="${relative#*${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}/}"
-            name=$(echo "$after_org" | cut -d'/' -f1)
+            name="${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}/${after_org%%/*}"
             digest=$(basename "$sbom_file" .json)
             images=$(echo "$images" | jq -c --arg n "$name" --arg d "$digest" --arg s "$relative" \
               '. + [{"name": $n, "digest": $d, "sbom": $s}]')
