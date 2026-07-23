@@ -43,8 +43,7 @@ Actions for building, testing, and releasing Strimzi components.
 | `build/load-containers`    | Loads container images into Kind/Minikube registry       | `registry` (required: minikube/kind/external)                                        |
 | `build/deploy-java`        | Deploys Java artifacts to Maven Central                  | `projects` (required), `settingsPath` (required)                                     |
 | `build/release-artifacts`  | Builds release artifacts using Makefile                  | `releaseVersion` (required), `artifactSuffix` (required)                             |
-| `build/publish-helm-chart` | Publishes Helm Chart as OCI artifact                     | `releaseVersion` (required), `helmChartName` (required)                              |
-| `build/attest-artifact`    | Creates provenance or SBOM attestation for artifacts     | `mode` (required: blob/oci/sbom), see [Artifact Attestation](#artifact-attestation)  |
+| `build/publish-helm-chart` | Publishes Helm Chart as OCI artifact                     | `releaseVersion` (required), `helmChartName` (required). Outputs: `image` (full OCI ref with digest) |
 
 > [!IMPORTANT]
 > Build actions do **not** install their own dependencies (Java, yq, Helm, Docker, Shellcheck, Syft, etc.).
@@ -56,31 +55,23 @@ Actions for building, testing, and releasing Strimzi components.
 
 ### Artifact Attestation
 
-The `attest-artifact` action creates [SLSA build provenance](https://slsa.dev/provenance/v1) and [SBOM attestations](https://spdx.dev/Document/v2.3) using GitHub's Attestation API ([`actions/attest`](https://github.com/actions/attest)).
+Artifact attestation is handled by the `reusable-attest.yml` reusable workflow, which creates [SLSA build provenance](https://slsa.dev/provenance/v1) and [SBOM attestations](https://spdx.dev/Document/v2.3) using GitHub's Attestation API ([`actions/attest`](https://github.com/actions/attest)).
 Attestations are signed with Sigstore (keyless, via GitHub OIDC) and stored in the GitHub Attestation API.
 Consumers verify with `gh attestation verify`.
 
-The action supports three modes:
+Attestation runs as a **separate workflow job** — if it fails, the release/push/helm artifacts are already published and remain available.
 
-| Mode   | Use case                            | Key inputs                                              |
-|--------|-------------------------------------|---------------------------------------------------------|
-| `blob` | Release archives (.tar.gz, .zip)    | `subjectPath` (glob)                                    |
-| `oci`  | Container/Helm image provenance     | `subjectPrefix`, `imageName`, `subjectDigest`            |
-| `sbom` | SBOM attestation for OCI image      | `subjectPrefix`, `imageName`, `subjectDigest`, `sbomPath` |
+The reusable workflow handles three types of attestation:
 
-#### Built-in attestation
+| Job | What it attests | Key inputs |
+|-----|----------------|------------|
+| `attest-release` | Release archives (.tar.gz, .zip, .tgz) | `artifactSuffix`, `releaseVersion` |
+| `attest-helm` | Helm OCI artifact | `helmChartName`, `helmChartImage` (full OCI ref with digest) |
+| `attest-containers` | Container images (matrix) + SBOMs | `containerImages` (JSON array), `sbomsArtifact` |
 
-The following actions include attestation automatically (on push events only, skipped on PRs):
+The `attest-release` job downloads the release tar, attests the archives, adds the `.intoto.jsonl` provenance bundle and SBOMs to the tar, and re-uploads it (required for [OpenSSF Scorecard Signed-Releases](https://github.com/ossf/scorecard/blob/main/docs/checks.md#signed-releases) check).
 
-- **`release-artifacts`** — attests release archives in `blob` mode, includes `.intoto.jsonl` provenance bundle in the release tarball (required for [OpenSSF Scorecard Signed-Releases](https://github.com/ossf/scorecard/blob/main/docs/checks.md#signed-releases) check)
-- **`publish-helm-chart`** — attests the Helm OCI artifact in `oci` mode after `helm push`
-
-#### Container image attestation
-
-Container images require a separate attestation job because each image needs its own `actions/attest` call.
-The `push-containers` action discovers images from the SBOM directory and outputs a JSON array for use in a matrix job.
-
-**Required permissions** in the release workflow:
+**Required permissions** in the calling workflow:
 
 ```yaml
 permissions:
@@ -89,44 +80,19 @@ permissions:
   attestations: write   # GitHub Attestation API
 ```
 
-**Example** — add to your project's `release.yml` after the push-containers job:
+**Example** — add to your project's `release.yml` after the push-containers and publish-helm jobs:
 
 ```yaml
-  attest-containers:
-    needs: push-containers
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      attestations: write
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ${{ fromJson(needs.push-containers.outputs.images) }}
-    steps:
-      - name: Download SBOM artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: SBOMs-operators-${{ env.RELEASE_VERSION }}.tar.gz
-
-      - name: Extract SBOMs
-        run: tar -xzf sbom.tar.gz
-
-      - name: Attest container provenance
-        uses: ./.github/actions/build/attest-artifact
-        with:
-          mode: oci
-          subjectPrefix: quay.io/strimzi
-          imageName: ${{ matrix.image.name }}
-          subjectDigest: ${{ matrix.image.digest }}
-
-      - name: Attest container SBOM
-        uses: ./.github/actions/build/attest-artifact
-        with:
-          mode: sbom
-          subjectPrefix: quay.io/strimzi
-          imageName: ${{ matrix.image.name }}
-          subjectDigest: ${{ matrix.image.digest }}
-          sbomPath: ./${{ matrix.image.sbom }}
+  attest:
+    needs: [push-containers, release-artifacts, publish-helm]
+    uses: strimzi/github-actions/.github/workflows/reusable-attest.yml@main
+    with:
+      containerImages: ${{ needs.push-containers.outputs.images }}
+      artifactSuffix: "operators"
+      releaseVersion: ${{ env.RELEASE_VERSION }}
+      helmChartName: "strimzi-kafka-operator"
+      helmChartImage: ${{ needs.publish-helm.outputs.image }}
+      sbomsArtifact: ${{ needs.push-containers.outputs.sbomsArtifact }}
 ```
 
 #### Verification
