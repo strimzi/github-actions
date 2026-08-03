@@ -29,7 +29,8 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
-            ref: "release-1.1.x"
+            # There was problem with prometheus download urls which was fixed in main and will be part of 1.2.x
+            ref: "main"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
