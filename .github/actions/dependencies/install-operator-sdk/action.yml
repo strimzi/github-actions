@@ -1,0 +1,22 @@
+name: "Setup OperatorSDK"
+description: "Setup OperatorSDK"
+
+inputs:
+  operatorSdkVersion:
+    description: "OperatorSDK version to be installed"
+    required: false
+    default: "1.42.2"
+  architecture:
+    description: "Architecture"
+    required: false
+    default: "amd64"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup OperatorSDK
+      shell: bash
+      run: |
+        ${{ github.action_path }}/setup_operator_sdk.sh "${{ inputs.architecture }}"
+      env:
+        OPERATOR_SDK_VERSION: ${{ inputs.operatorSdkVersion }}
