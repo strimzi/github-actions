@@ -194,19 +194,19 @@ jobs:
           - kindNodeImage: latest
             controlNodes: 1
             workerNodes: 1
-            expectedK8sVersion: "1.35"
+            expectedK8sVersion: "1.36"
           - kindNodeImage: oldest
             controlNodes: 1
             workerNodes: 1
             expectedK8sVersion: "1.30"
-          - kindNodeImage: kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f # 1.35.0 for Kind 0.31
+          - kindNodeImage: kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5 # 1.36.1 for Kind 0.32
             controlNodes: 1
             workerNodes: 2
-            expectedK8sVersion: "1.35"
+            expectedK8sVersion: "1.36"
           - kindNodeImage: latest
             controlNodes: 3
             workerNodes: 3
-            expectedK8sVersion: "1.35"
+            expectedK8sVersion: "1.36"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
