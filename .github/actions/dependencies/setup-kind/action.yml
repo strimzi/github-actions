@@ -9,7 +9,7 @@ inputs:
   kindVersion:
     description: "Kind version"
     required: false
-    default: 0.31.0
+    default: 0.32.0
   registry:
     description: "Image used for Minikube Registry"
     required: false
@@ -25,7 +25,7 @@ inputs:
   cloudProviderVersion:
     description: "Version of kind cloud-provider image"
     required: false
-    default: 0.6.0
+    default: 0.11.0
 
 runs:
   using: "composite"
