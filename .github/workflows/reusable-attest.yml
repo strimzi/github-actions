@@ -33,6 +33,11 @@ on:
         required: false
         type: string
         default: ""
+      maxParallel:
+        description: "Limits the parallel execution of container attestation"
+        required: false
+        type: number
+        default: 1
 
 permissions:
   contents: read
@@ -152,6 +157,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       fail-fast: false
+      max-parallel: ${{ inputs.maxParallel }}
       matrix:
         image: ${{ fromJSON(inputs.containerImages) }}
     steps:
