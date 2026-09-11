@@ -43,10 +43,12 @@ function is_podman() {
 
 function install_kubectl {
     if [ "${TEST_KUBECTL_VERSION:-latest}" = "latest" ]; then
-        TEST_KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+        TEST_KUBECTL_VERSION=$(curl -fsSL --retry 3 https://dl.k8s.io/release/stable.txt)
     fi
-    curl -Lo kubectl https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl && chmod +x kubectl
+    curl -fL --retry 3 -o kubectl "https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+    chmod +x kubectl
     sudo mv kubectl /usr/local/bin
+    kubectl version --client
 
     if is_podman; then
         sudo ln -sf /usr/local/bin/kubectl /usr/bin/kubectl
@@ -66,10 +68,12 @@ function install_kubernetes_provisioner {
 
     KIND_URL=https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-${ARCH}
 
-    curl -Lo kind ${KIND_URL} && chmod +x kind
+    curl -fL --retry 3 -o kind "${KIND_URL}"
+    chmod +x kind
 
     # Move the binary to a globally accessible location
     sudo mv kind /usr/local/bin/kind
+    kind version
     sudo ln -sf /usr/local/bin/kind /usr/bin/kind
 
     if command -v kind >/dev/null 2>&1; then

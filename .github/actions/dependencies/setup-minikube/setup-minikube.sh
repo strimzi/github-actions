@@ -23,10 +23,12 @@ fi
 
 function install_kubectl {
     if [ "${TEST_KUBECTL_VERSION:-latest}" = "latest" ]; then
-        TEST_KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+        TEST_KUBECTL_VERSION=$(curl -fsSL --retry 3 https://dl.k8s.io/release/stable.txt)
     fi
-    curl -Lo kubectl https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl && chmod +x kubectl
+    curl -fL --retry 3 -o kubectl "https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+    chmod +x kubectl
     sudo cp kubectl /usr/local/bin
+    kubectl version --client
 }
 
 function label_node {
@@ -51,8 +53,10 @@ if [ "$TEST_CLUSTER" = "minikube" ]; then
         KUBE_VERSION="v${KUBE_VERSION#v}"
     fi
 
-    curl -Lo minikube ${TEST_MINIKUBE_URL} && chmod +x minikube
+    curl -fL --retry 3 -o minikube "${TEST_MINIKUBE_URL}"
+    chmod +x minikube
     sudo cp minikube /usr/local/bin
+    minikube version
 
     export MINIKUBE_WANTUPDATENOTIFICATION=false
     export MINIKUBE_WANTREPORTERRORPROMPT=false
