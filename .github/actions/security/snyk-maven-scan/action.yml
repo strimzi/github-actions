@@ -38,20 +38,26 @@ runs:
           --sarif-file-output=snyk-maven-${{ inputs.scanName }}.sarif \
           --json-file-output=snyk-results.json
 
-    # This is used to set severity score to 0.0 for those results that has empty value for it.
-    # Empty value is not supported by GitHub Code Scanning page
-    # It also set tool.driver.name to distinguish between different tools within UI
+    # This is used to:
+    # - Set severity score to 0.0 for those results that has empty value for it (empty value is not supported by GitHub Code Scanning)
+    # - Set tool.driver.name to distinguish between different tools within UI
+    # - Assign a unique automationDetails.id to each run so GitHub Code Scanning does not reject
+    #   SARIF files where snyk --all-projects emits multiple runs with the same (or missing) category
     - name: Sanitize SARIF security-severity values
       shell: bash
       run: |
         SARIF_FILE="snyk-maven-${{ inputs.scanName }}.sarif"
         if [ -f "$SARIF_FILE" ]; then
-          jq --arg name "Snyk Maven (${{ inputs.scanName }})" '
+          jq --arg name "Snyk Maven (${{ inputs.scanName }})" --arg category "snyk-maven-${{ inputs.scanName }}" '
             (.runs[].tool.driver.name) = $name |
             (.runs[].tool.driver.rules[]?.properties."security-severity") |=
               if . == null or . == "undefined" or (tostring | test("^[0-9]") | not) then "0.0"
               else .
-              end' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
+              end |
+            .runs = (.runs | to_entries | map(
+              .value.automationDetails.id = ($category + "/" + (.key | tostring) + "/") |
+              .value
+            ))' "$SARIF_FILE" > "${SARIF_FILE}.tmp" && mv "${SARIF_FILE}.tmp" "$SARIF_FILE"
         fi
 
     - name: Upload SARIF to GitHub Code Scanning
