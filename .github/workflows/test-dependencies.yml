@@ -194,7 +194,7 @@ jobs:
           - kindNodeImage: latest
             controlNodes: 1
             workerNodes: 1
-            expectedK8sVersion: "1.36"
+            expectedK8sVersion: "1.37"
           - kindNodeImage: oldest
             controlNodes: 1
             workerNodes: 1
@@ -206,7 +206,7 @@ jobs:
           - kindNodeImage: latest
             controlNodes: 3
             workerNodes: 3
-            expectedK8sVersion: "1.36"
+            expectedK8sVersion: "1.37"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
