@@ -179,7 +179,6 @@ jobs:
         image:
           # Kafka images are not here to avoid need to change Kafka versions on multiple places when we bump operators repo versions for testing
           - buildah-latest-amd64
-          - kaniko-executor-latest-amd64
           - maven-builder-latest-amd64
           - operator-latest-amd64
     steps:
