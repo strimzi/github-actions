@@ -29,8 +29,7 @@ jobs:
         project:
           # Strimzi Operator - Full pipeline with containers and Helm
           - repo: "strimzi/strimzi-kafka-operator"
-            # There was problem with prometheus download urls which was fixed in main and will be part of 1.2.x
-            ref: "main"
+            ref: "release-1.3.x"
             artifactSuffix: "operators"
             architecture: "amd64"
             buildContainers: true
@@ -121,7 +120,7 @@ jobs:
 
           # Test Clients - Containers only (no Maven deploy)
           - repo: "strimzi/test-clients"
-            ref: "release-0.14.x"
+            ref: "release-0.15.x"
             artifactSuffix: "test-clients"
             architecture: "amd64"
             buildContainers: true
@@ -136,7 +135,7 @@ jobs:
 
           # Metrics Reporter - Java only (no containers)
           - repo: "strimzi/metrics-reporter"
-            ref: "main"
+            ref: "release-0.4.x"
             artifactSuffix: "metrics-reporter"
             architecture: "amd64"
             buildContainers: false
@@ -181,7 +180,7 @@ jobs:
 
           # Kafka OAuth - Java only (no containers)
           - repo: "strimzi/strimzi-kafka-oauth"
-            ref: "main"
+            ref: "release-0.18.x"
             artifactSuffix: "kafka-oauth"
             architecture: "amd64"
             buildContainers: false
