@@ -131,6 +131,13 @@ jobs:
           # Skip just ITs and rerun unit tests in case of flakes
           MVN_ARGS: "-DskipITs -Dsurefire.rerunFailingTestsCount=5"
 
+      - name: Save Kafka binaries cache
+        if: ${{ inputs.clusterOperatorBuild == true }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: docker-images/artifacts/binaries/kafka/archives
+          key: kafka-binaries-${{ hashFiles('kafka-versions.yaml') }}
+
       - name: Verify binaries artifact was created
         run: |
           if [ ! -f "binaries-${{ inputs.artifactSuffix }}.tar" ]; then
