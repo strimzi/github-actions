@@ -111,6 +111,10 @@ jobs:
       - name: Install Helm
         uses: ./.github/actions/dependencies/install-helm
 
+      # Strimzi Operator build pulls the Sova snapshot from GHCR
+      - name: Install ORAS
+        uses: ./.github/actions/dependencies/install-oras
+
       - name: Restore Kafka binaries cache
         if: ${{ inputs.clusterOperatorBuild == true }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -422,6 +426,10 @@ jobs:
 
       - name: Install AsciiDoctor
         uses: ./.github/actions/dependencies/install-ascii-doctor
+
+      # Strimzi Operator release build pulls the Sova snapshot from GHCR
+      - name: Install ORAS
+        uses: ./.github/actions/dependencies/install-oras
 
       - name: Test release-artifacts action
         uses: ./.github/actions/build/release-artifacts
