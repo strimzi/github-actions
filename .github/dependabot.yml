@@ -6,9 +6,13 @@ updates:
       - "/"
       - "/.github/actions/build/*"
       - "/.github/actions/dependencies/*"
+      - "/.github/actions/security/*"
       - "/.github/actions/utils/*"
     schedule:
       interval: "weekly"
+    # Wait a week after a release so a compromised version is likely caught before we pick it up
+    cooldown:
+      default-days: 7
     groups:
       all-dependencies:
         patterns:
