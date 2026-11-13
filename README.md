@@ -25,7 +25,7 @@ Actions for installing tools and setting up Kubernetes clusters.
 | `dependencies/setup-java`           | Installs Java and Maven                                            | `javaVersion` (21), `mavenVersion` (3.9.9), `javaDistro` (temurin)                            |
 | `dependencies/install-helm`         | Installs Helm and helm-unittest plugin                             | `helmVersion` (v3.20.0), `helmUnitTestVersion` (v1.0.3)                                       |
 | `dependencies/install-yq`           | Installs yq YAML processor                                         | `version` (v4.6.3), `architecture` (amd64)                                                    |
-| `dependencies/install-shellcheck`   | Installs ShellCheck linter                                         | `version` (0.11.0), `architecture` (amd64)                                                    |
+| `dependencies/install-shellcheck`   | Installs ShellCheck linter                                         | `version` (0.11.0, minimum 0.11.0), `architecture` (amd64)                                    |
 | `dependencies/install-syft`         | Installs Syft SBOM generation tool                                 | `version` (1.20.0), `architecture` (amd64)                                                    |
 | `dependencies/install-oras`         | Installs ORAS CLI for OCI artifacts                                | `version` (1.3.6)                                                                             |
 | `dependencies/install-ascii-doctor` | Installs Ascii Doctor tool                                         | `rubyVersion` (3.2)                                                                           |
@@ -47,6 +47,9 @@ Actions for building, testing, and releasing Strimzi components.
 | `build/publish-helm-chart` | Publishes Helm Chart as OCI artifact                     | `releaseVersion` (required), `helmChartName` (required). Outputs: `image` (full OCI ref with digest) |
 | `build/push-oci-artifact`  | Pushes a file to an OCI registry (GHCR by default) via ORAS | `file`, `name`, `tag` (required), `mediaType` (application/x-tar), `containerRegistry` (ghcr.io), `containerOrg` (repo owner). Outputs: `image` (full OCI ref with digest) |
 | `build/pull-oci-artifact`  | Pulls an OCI artifact from a registry via ORAS            | `image` (required), `outputDir` (.)                                                  |
+
+> [!NOTE]
+> Dependency actions verify the SHA-256 checksum of every binary they download and fail on a mismatch.
 
 > [!IMPORTANT]
 > Build actions do **not** install their own dependencies (Java, yq, Helm, Docker, Shellcheck, Syft, etc.).
