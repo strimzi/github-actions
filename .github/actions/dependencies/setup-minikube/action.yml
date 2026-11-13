@@ -5,11 +5,11 @@ inputs:
   kubeVersion:
     description: "Kubernetes CLI version to install"
     required: false
-    default: "v1.38.0"
+    default: "v1.37.2"
   minikubeVersion:
     description: "Minikube version to install"
     required: false
-    default: "v1.38.0"
+    default: "v1.37.2"
   architecture:
     description: "Architecture"
     required: false
