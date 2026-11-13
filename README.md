@@ -23,14 +23,14 @@ Actions for installing tools and setting up Kubernetes clusters.
 |-------------------------------------|--------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | `dependencies/install-docker`       | Sets up Docker with QEMU and Buildx for multi-platform builds      | —                                                                                             |
 | `dependencies/setup-java`           | Installs Java and Maven                                            | `javaVersion` (21), `mavenVersion` (3.9.16), `javaDistro` (temurin)                            |
-| `dependencies/install-helm`         | Installs Helm and helm-unittest plugin                             | `helmVersion` (v3.22.1), `helmUnitTestVersion` (v1.2.1)                                       |
+| `dependencies/install-helm`         | Installs Helm and helm-unittest plugin                             | `helmVersion` (v4.3.2), `helmUnitTestVersion` (v1.2.1)                                       |
 | `dependencies/install-yq`           | Installs yq YAML processor                                         | `version` (v4.54.3), `architecture` (amd64)                                                    |
 | `dependencies/install-shellcheck`   | Installs ShellCheck linter                                         | `version` (0.11.0, minimum 0.11.0), `architecture` (amd64)                                    |
 | `dependencies/install-syft`         | Installs Syft SBOM generation tool                                 | `version` (1.57.1), `architecture` (amd64)                                                    |
 | `dependencies/install-oras`         | Installs ORAS CLI for OCI artifacts                                | `version` (1.3.6)                                                                             |
-| `dependencies/install-ascii-doctor` | Installs Ascii Doctor tool                                         | `rubyVersion` (3.2)                                                                           |
+| `dependencies/install-ascii-doctor` | Installs Ascii Doctor tool                                         | `rubyVersion` (3.4)                                                                           |
 | `dependencies/setup-kind`           | Creates a Kind cluster with local registry and cloud-provider-kind | `kindVersion` (0.33.0), `controlNodes` (1), `workerNodes` (1), `cloudProviderVersion` (0.12.0) |
-| `dependencies/setup-minikube`       | Creates a Minikube cluster with local registry                     | `minikubeVersion` (v1.38.0), `kubeVersion` (v1.37.2)                                          |
+| `dependencies/setup-minikube`       | Creates a Minikube cluster with local registry                     | `minikubeVersion` (v1.39.0), `kubeVersion` (v1.37.2)                                          |
 
 ### Build Actions
 
@@ -159,7 +159,7 @@ Tests all dependency actions with version matrix combinations:
 - **ShellCheck** — version matrix, functional test
 - **Syft** — version matrix
 - **yq** — version matrix, functional test
-- **Java/Maven** — Java 17/21 + Maven 3.9.16/3.8.8 matrix
+- **Java/Maven** — Java 17/21/25 + Maven 3.9.16/3.8.8 matrix
 - **Kind** — single/multi-node clusters, K8s version verification, registry access from inside cluster, node labels, cloud-provider-kind
 - **Minikube** — version matrix with `latest`, K8s version verification, registry access
 

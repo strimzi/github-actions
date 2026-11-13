@@ -13,7 +13,7 @@ inputs:
   registry:
     description: "Image used for Minikube Registry"
     required: false
-    default: mirror.gcr.io/registry:2.8.3
+    default: mirror.gcr.io/registry:3.1.2
   controlNodes:
     description: "Count of Control Plane nodes"
     required: false

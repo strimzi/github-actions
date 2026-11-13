@@ -75,7 +75,8 @@ if [ "$TEST_CLUSTER" = "minikube" ]; then
     # We can turn on network polices support by adding the following options --cni=calico
     # However, it seems not working properly with kube 1.25, we should revisit it once we drop it
     # Covered by https://github.com/strimzi/strimzi-kafka-operator/issues/11639
-    minikube start --driver=docker --kubernetes-version=${KUBE_VERSION} \
+    # minikube 1.39 defaults to containerd; load-containers needs the Docker runtime for `minikube docker-env`
+    minikube start --driver=docker --container-runtime=docker --kubernetes-version=${KUBE_VERSION} \
       --insecure-registry=localhost:5000 --extra-config=apiserver.authorization-mode=Node,RBAC \
       --cpus=${MINIKUBE_CPU} --memory=${MINIKUBE_MEMORY} --force
 

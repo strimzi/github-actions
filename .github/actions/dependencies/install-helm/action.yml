@@ -5,7 +5,7 @@ inputs:
   helmVersion:
     description: "Helm version used"
     required: false
-    default: "v3.22.1"
+    default: "v4.3.2"
   helmUnitTestVersion:
     description: "Helm UnitTest version used"
     required: false
@@ -18,5 +18,5 @@ runs:
       shell: bash
       run: "${{ github.action_path }}/setup-helm.sh"
       env:
-        TEST_HELM3_VERSION: ${{ inputs.helmVersion }}
+        TEST_HELM_VERSION: ${{ inputs.helmVersion }}
         TEST_HELM_UNITTEST_VERSION: ${{ inputs.helmUnitTestVersion }}
