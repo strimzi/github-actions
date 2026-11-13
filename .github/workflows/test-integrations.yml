@@ -60,7 +60,7 @@ jobs:
 
           # Access Operator - Full pipeline with containers
           - repo: "strimzi/kafka-access-operator"
-            ref: "release-0.4.x"
+            ref: "release-0.3.x"
             artifactSuffix: "access-operator"
             architecture: "amd64"
             buildContainers: true
