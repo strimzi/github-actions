@@ -127,7 +127,7 @@ function load_iptables_modules_for_podman {
         4) registry_dns - DNS name for registry
 @global:
         IP_FAMILY - Determines whether to configure IPv4 or IPv6 settings
-@note: Adjusts the container runtime’s config files (/etc/docker/daemon.json
+@note: Adjusts the container runtime config files (/etc/docker/daemon.json
        or /etc/containers/registries.conf) and restarts the respective service.
 '
 function updateContainerRuntimeConfiguration {
@@ -174,7 +174,7 @@ EOF
         sudo systemctl restart docker
     else
         # Ensure the podman_config is inserted correctly after unqualified-search-registries
-        sudo awk -v config="$podman_config" '
+        awk -v config="$podman_config" '
         BEGIN { inserted = 0 }
         /unqualified-search-registries/ && !inserted {
             print $0
@@ -238,12 +238,12 @@ nodes:
 EOF
 
     # Add control-plane nodes
-    for i in $(seq 1 "$control_planes"); do
+    for _ in $(seq 1 "$control_planes"); do
         echo "    - role: control-plane" >> /tmp/kind-config.yaml
     done
 
     # Add worker nodes
-    for i in $(seq 1 "$worker_nodes"); do
+    for _ in $(seq 1 "$worker_nodes"); do
         echo "    - role: worker" >> /tmp/kind-config.yaml
     done
 

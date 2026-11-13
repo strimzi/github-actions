@@ -10,7 +10,9 @@ function cleanup() {
 # Run the cleanup on failure / exit
 trap cleanup EXIT
 
-export GPG_TTY=$(tty)
+# tty fails without a terminal (as on CI); that must not stop the script
+GPG_TTY=$(tty) || true
+export GPG_TTY
 echo $GPG_SIGNING_KEY | base64 -d > signing.gpg
 gpg --batch --import signing.gpg
 

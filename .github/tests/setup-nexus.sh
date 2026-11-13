@@ -35,7 +35,7 @@ echo ">>> Waiting for Nexus to fully initialize..."
 sleep 10
 
 echo ">>> Retrieving admin password..."
-NEXUS_PASSWORD=$(docker exec $(docker ps -q --filter ancestor=$NEXUS_IMAGE) cat /nexus-data/admin.password 2>/dev/null)
+NEXUS_PASSWORD=$(docker exec "$(docker ps -q --filter ancestor="$NEXUS_IMAGE")" cat /nexus-data/admin.password 2>/dev/null)
 
 if [ -z "$NEXUS_PASSWORD" ]; then
     echo "ERROR: Could not retrieve Nexus admin password"
