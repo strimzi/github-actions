@@ -1,0 +1,38 @@
+name: "Pull OCI Artifact"
+description: "Pulls an OCI artifact from a registry using ORAS"
+
+inputs:
+  image:
+    description: "OCI reference to pull (e.g. ghcr.io/strimzi/binaries-operators:1.4.0 or ...@sha256:abc)"
+    required: true
+  outputDir:
+    description: "Directory to pull the artifact files into"
+    required: false
+    default: "."
+  registryUser:
+    description: "Registry username"
+    required: false
+    default: ${{ github.actor }}
+  registryPassword:
+    description: "Registry password"
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Login to OCI registry
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        REGISTRY_USER: ${{ inputs.registryUser }}
+        REGISTRY_PASSWORD: ${{ inputs.registryPassword }}
+      # The registry is the part of the image reference before the first slash
+      run: echo "$REGISTRY_PASSWORD" | oras login "${IMAGE%%/*}" -u "$REGISTRY_USER" --password-stdin
+
+    - name: Pull OCI artifact
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        OUTPUT_DIR: ${{ inputs.outputDir }}
+      run: oras pull "$IMAGE" -o "$OUTPUT_DIR"

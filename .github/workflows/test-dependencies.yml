@@ -128,6 +128,28 @@ jobs:
           echo "Installed syft version: ${INSTALLED}"
           echo "${INSTALLED}" | grep -q "${{ matrix.version }}"
 
+  test-install-oras:
+    name: Test install-oras
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          - '1.3.6'
+          - '1.2.3'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run install-oras action
+        uses: ./.github/actions/dependencies/install-oras
+        with:
+          version: ${{ matrix.version }}
+
+      - name: Verify ORAS version
+        run: |
+          INSTALLED=$(oras version | grep '^Version:' | awk '{print $2}')
+          echo "Installed ORAS version: ${INSTALLED}"
+          echo "${INSTALLED}" | grep -q "${{ matrix.version }}"
+
   test-install-yq:
     name: Test install-yq
     runs-on: ubuntu-latest

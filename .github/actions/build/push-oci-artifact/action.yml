@@ -1,0 +1,81 @@
+name: "Push OCI Artifact"
+description: "Pushes a file to an OCI registry as an artifact using ORAS"
+
+inputs:
+  file:
+    description: "Path to the file to push (e.g. binaries-operators.tar or target/sova-0.1.0-dist.zip)"
+    required: true
+  mediaType:
+    description: "Media type of the file"
+    required: false
+    default: "application/x-tar"
+  name:
+    description: "Artifact name in the registry (e.g. binaries-operators)"
+    required: true
+  tag:
+    description: "Artifact tag (e.g. 0.49.0 or 0.1.0-SNAPSHOT)"
+    required: true
+  containerRegistry:
+    description: "OCI registry"
+    required: false
+    default: "ghcr.io"
+  containerOrg:
+    description: "Organization/namespace in the registry. Defaults to the lowercased repository owner, so forks push into their own namespace"
+    required: false
+    default: ""
+  registryUser:
+    description: "Registry username"
+    required: false
+    default: ${{ github.actor }}
+  registryPassword:
+    description: "Registry password"
+    required: false
+    default: ${{ github.token }}
+outputs:
+  image:
+    description: "Full OCI reference with digest (e.g. ghcr.io/strimzi/binaries-operators@sha256:abc)"
+    value: ${{ steps.push.outputs.image }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Login to OCI registry
+      shell: bash
+      env:
+        REGISTRY: ${{ inputs.containerRegistry }}
+        REGISTRY_USER: ${{ inputs.registryUser }}
+        REGISTRY_PASSWORD: ${{ inputs.registryPassword }}
+      run: echo "$REGISTRY_PASSWORD" | oras login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
+
+    - name: Push OCI artifact
+      id: push
+      shell: bash
+      env:
+        FILE: ${{ inputs.file }}
+        MEDIA_TYPE: ${{ inputs.mediaType }}
+        NAME: ${{ inputs.name }}
+        TAG: ${{ inputs.tag }}
+        REGISTRY: ${{ inputs.containerRegistry }}
+        ORG: ${{ inputs.containerOrg }}
+      run: |
+        set -euo pipefail
+        if [ ! -f "$FILE" ]; then
+          echo "::error::File not found: $FILE"
+          exit 1
+        fi
+
+        # Registries require lowercase names, which a repository owner is not guaranteed to be
+        org=$(echo "${ORG:-$GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+        repository="${REGISTRY}/${org}/${NAME}"
+
+        # ORAS stores the given path as the layer title and recreates it on pull,
+        # so push from the file's directory to keep only the file name
+        cd "$(dirname "$FILE")"
+        digest=$(oras push "${repository}:${TAG}" \
+          --annotation "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+          --annotation "org.opencontainers.image.revision=${GITHUB_SHA}" \
+          --format go-template='{{.digest}}' \
+          "$(basename "$FILE"):${MEDIA_TYPE}")
+
+        echo "Pushed ${repository}:${TAG} (${digest})"
+        echo "image=${repository}@${digest}" >> "$GITHUB_OUTPUT"

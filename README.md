@@ -27,6 +27,7 @@ Actions for installing tools and setting up Kubernetes clusters.
 | `dependencies/install-yq`           | Installs yq YAML processor                                         | `version` (v4.6.3), `architecture` (amd64)                                                    |
 | `dependencies/install-shellcheck`   | Installs ShellCheck linter                                         | `version` (0.11.0), `architecture` (amd64)                                                    |
 | `dependencies/install-syft`         | Installs Syft SBOM generation tool                                 | `version` (1.20.0), `architecture` (amd64)                                                    |
+| `dependencies/install-oras`         | Installs ORAS CLI for OCI artifacts                                | `version` (1.3.6)                                                                             |
 | `dependencies/install-ascii-doctor` | Installs Ascii Doctor tool                                         | `rubyVersion` (3.2)                                                                           |
 | `dependencies/setup-kind`           | Creates a Kind cluster with local registry and cloud-provider-kind | `kindVersion` (0.31.0), `controlNodes` (1), `workerNodes` (1), `cloudProviderVersion` (0.6.0) |
 | `dependencies/setup-minikube`       | Creates a Minikube cluster with local registry                     | `minikubeVersion` (v1.38.0), `kubeVersion` (v1.38.0)                                          |
@@ -44,10 +45,25 @@ Actions for building, testing, and releasing Strimzi components.
 | `build/deploy-java`        | Deploys Java artifacts to Maven Central                  | `projects` (required), `settingsPath` (required)                                     |
 | `build/release-artifacts`  | Builds release artifacts using Makefile                  | `releaseVersion` (required), `artifactSuffix` (required)                             |
 | `build/publish-helm-chart` | Publishes Helm Chart as OCI artifact                     | `releaseVersion` (required), `helmChartName` (required). Outputs: `image` (full OCI ref with digest) |
+| `build/push-oci-artifact`  | Pushes a file to an OCI registry (GHCR by default) via ORAS | `file`, `name`, `tag` (required), `mediaType` (application/x-tar), `containerRegistry` (ghcr.io), `containerOrg` (repo owner). Outputs: `image` (full OCI ref with digest) |
+| `build/pull-oci-artifact`  | Pulls an OCI artifact from a registry via ORAS            | `image` (required), `outputDir` (.)                                                  |
 
 > [!IMPORTANT]
 > Build actions do **not** install their own dependencies (Java, yq, Helm, Docker, Shellcheck, Syft, etc.).
 > Callers must install the required dependencies using the appropriate dependency actions **before** invoking a build action.
+
+> [!NOTE]
+> `push-oci-artifact` and `pull-oci-artifact` share build outputs between workflows and repositories through GHCR, which keeps them longer than workflow artifacts.
+> The pushing job needs `packages: write` permission. A new GHCR package is private by default, so an org admin has to make it public once before other repositories can pull it.
+>
+> ```yaml
+> - uses: strimzi/github-actions/.github/actions/dependencies/install-oras@<sha>
+> - uses: strimzi/github-actions/.github/actions/build/push-oci-artifact@<sha>
+>   with:
+>     file: binaries-operators.tar
+>     name: binaries-operators
+>     tag: ${{ env.TAG }}
+> ```
 
 > [!IMPORTANT]
 > The `build-binaries` action supports an `clusterOperatorBuild` input (default `false`) that enables Strimzi Kafka Operator specific build steps — Helm chart generation, CRD distribution, dashboard setup, documentation checks, and uncommitted changes verification.
