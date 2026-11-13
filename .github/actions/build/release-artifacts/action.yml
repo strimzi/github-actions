@@ -29,11 +29,14 @@ runs:
     - name: Create release tarball
       shell: bash
       run: |
-        find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
-                          -iname "*${{ inputs.releaseVersion }}*.zip" -o \
-                          -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
-                          -iname "*${{ inputs.releaseVersion }}*.yaml" \) \
-          -exec tar -rvf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar {} \;
+        find . -type f \( -iname "*${INPUTS_RELEASEVERSION}*.tar.gz" -o \
+                          -iname "*${INPUTS_RELEASEVERSION}*.zip" -o \
+                          -iname "*${INPUTS_RELEASEVERSION}*.tgz" -o \
+                          -iname "*${INPUTS_RELEASEVERSION}*.yaml" \) \
+          -exec tar -rvf release-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_RELEASEVERSION}.tar {} \;
+      env:
+        INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
 
     - name: Upload release artifacts
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

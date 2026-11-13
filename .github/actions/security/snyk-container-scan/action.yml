@@ -28,6 +28,7 @@ runs:
       uses: snyk/actions/setup@9adf32b1121593767fc3c057af55b55db032dc04 # v1.0.0
 
     - name: Load and scan image
+      id: load
       shell: bash
       continue-on-error: true
       env:
@@ -48,7 +49,7 @@ runs:
           exit 1
         fi
 
-        echo "LOADED_IMAGE=$LOADED_IMAGE" >> "$GITHUB_ENV"
+        echo "loaded-image=$LOADED_IMAGE" >> "$GITHUB_OUTPUT"
 
         snyk container test "$LOADED_IMAGE" \
           --sarif-file-output="snyk-container-${IMAGE_NAME}.sarif" \
@@ -94,6 +95,7 @@ runs:
       shell: bash
       continue-on-error: true
       env:
+        LOADED_IMAGE: ${{ steps.load.outputs.loaded-image }}
         TARGET_REFERENCE: ${{ inputs.snykMonitorTargetReference }}
       run: |
         if [ -n "$LOADED_IMAGE" ]; then

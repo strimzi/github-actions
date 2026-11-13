@@ -66,20 +66,27 @@ runs:
     - name: Extract container archives
       shell: bash
       run: |
-        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        IFS=',' read -ra ARCH_ARRAY <<< "${INPUTS_ARCHITECTURES}"
         for arch in "${ARCH_ARRAY[@]}"; do
-          tar -xvf "containers-${{ inputs.artifactSuffix }}-${arch}.tar"
-          rm "containers-${{ inputs.artifactSuffix }}-${arch}.tar"
+          tar -xvf "containers-${INPUTS_ARTIFACTSUFFIX}-${arch}.tar"
+          rm "containers-${INPUTS_ARTIFACTSUFFIX}-${arch}.tar"
         done
+      env:
+        INPUTS_ARCHITECTURES: ${{ inputs.architectures }}
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
 
     - name: Login to container registry
       shell: bash
-      run: docker login -u ${{ inputs.registryUser }} -p ${{ inputs.registryPassword }} ${{ inputs.containerRegistry }}
+      run: docker login -u ${INPUTS_REGISTRYUSER} -p ${INPUTS_REGISTRYPASSWORD} ${INPUTS_CONTAINERREGISTRY}
+      env:
+        INPUTS_REGISTRYUSER: ${{ inputs.registryUser }}
+        INPUTS_REGISTRYPASSWORD: ${{ inputs.registryPassword }}
+        INPUTS_CONTAINERREGISTRY: ${{ inputs.containerRegistry }}
 
     - name: Push containers and create manifests
       shell: bash
       run: |
-        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        IFS=',' read -ra ARCH_ARRAY <<< "${INPUTS_ARCHITECTURES}"
         for arch in "${ARCH_ARRAY[@]}"; do
           echo "Processing architecture: ${arch}"
           export DOCKER_ARCHITECTURE="${arch}"
@@ -91,6 +98,7 @@ runs:
         DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
         DOCKER_ORG: ${{ inputs.containerOrg }}
         DOCKER_TAG: ${{ inputs.containerTag }}
+        INPUTS_ARCHITECTURES: ${{ inputs.architectures }}
 
     - name: Create multi-platform manifests
       shell: bash
@@ -126,7 +134,7 @@ runs:
       if: ${{ github.event_name != 'pull_request' }}
       shell: bash
       run: |
-        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        IFS=',' read -ra ARCH_ARRAY <<< "${INPUTS_ARCHITECTURES}"
         for arch in "${ARCH_ARRAY[@]}"; do
           echo "Generating SBOM for architecture: ${arch}"
           export DOCKER_ARCHITECTURE="${arch}"
@@ -138,6 +146,7 @@ runs:
         DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
         DOCKER_ORG: ${{ inputs.containerOrg }}
         DOCKER_TAG: ${{ inputs.containerTag }}
+        INPUTS_ARCHITECTURES: ${{ inputs.architectures }}
 
     # Generates a list of images and it's digest for attestation
     - name: Discover container images for attestation
@@ -148,8 +157,8 @@ runs:
         if [ -d "./sbom" ]; then
           for sbom_file in $(find ./sbom -name "*.json" -type f | sort); do
             relative="${sbom_file#./sbom/}"
-            after_org="${relative#*${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}/}"
-            name="${{ inputs.containerRegistry }}/${{ inputs.containerOrg }}/${after_org%%/*}"
+            after_org="${relative#*${INPUTS_CONTAINERREGISTRY}/${INPUTS_CONTAINERORG}/}"
+            name="${INPUTS_CONTAINERREGISTRY}/${INPUTS_CONTAINERORG}/${after_org%%/*}"
             digest=$(basename "$sbom_file" .json)
             images=$(echo "$images" | jq -c --arg n "$name" --arg d "$digest" --arg s "$relative" \
               '. + [{"name": $n, "digest": $d, "sbom": $s}]')
@@ -158,6 +167,9 @@ runs:
         fi
         echo "images=${images}" >> "$GITHUB_OUTPUT"
         echo "Discovered $(echo "$images" | jq 'length') image(s) for attestation"
+      env:
+        INPUTS_CONTAINERREGISTRY: ${{ inputs.containerRegistry }}
+        INPUTS_CONTAINERORG: ${{ inputs.containerOrg }}
 
     - name: Create SBOM archive
       # This condition is required for properly running the tests
@@ -181,7 +193,7 @@ runs:
       if: ${{ startsWith(github.ref, 'refs/heads/release-') }}
       shell: bash
       run: |
-        IFS=',' read -ra ARCH_ARRAY <<< "${{ inputs.architectures }}"
+        IFS=',' read -ra ARCH_ARRAY <<< "${INPUTS_ARCHITECTURES}"
         for arch in "${ARCH_ARRAY[@]}"; do
           echo "Pushing SBOM for architecture: ${arch}"
           export DOCKER_ARCHITECTURE="${arch}"
@@ -195,3 +207,4 @@ runs:
         DOCKER_REGISTRY: ${{ inputs.containerRegistry }}
         DOCKER_ORG: ${{ inputs.containerOrg }}
         DOCKER_TAG: ${{ inputs.containerTag }}
+        INPUTS_ARCHITECTURES: ${{ inputs.architectures }}

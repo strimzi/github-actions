@@ -17,6 +17,7 @@ runs:
     - name: Install yq
       shell: bash
       run: |
-        ${{ github.action_path }}/install_yq.sh "${{ inputs.architecture }}"
+        ${{ github.action_path }}/install_yq.sh "${INPUTS_ARCHITECTURE}"
       env:
         VERSION: ${{ inputs.version }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}

@@ -39,13 +39,15 @@ runs:
       if: steps.cache-registry.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        docker pull ${{ inputs.registry }}
-        docker save ${{ inputs.registry }} -o /tmp/registry-image.tar
+        docker pull ${INPUTS_REGISTRY}
+        docker save ${INPUTS_REGISTRY} -o /tmp/registry-image.tar
+      env:
+        INPUTS_REGISTRY: ${{ inputs.registry }}
 
     - name: Setup Minikube
       shell: bash
       run: |
-        ${{ github.action_path }}/setup-minikube.sh "${{ inputs.architecture }}"
+        ${{ github.action_path }}/setup-minikube.sh "${INPUTS_ARCHITECTURE}"
 
       env:
         TEST_CLUSTER: minikube
@@ -54,6 +56,7 @@ runs:
         TEST_MINIKUBE_VERSION: ${{ inputs.minikubeVersion }}
         REGISTRY_IMAGE: ${{ inputs.registry }}
         RETRIES: ${{ inputs.retries }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: Set DOCKER_REGISTRY
       shell: bash
@@ -63,7 +66,9 @@ runs:
     # This is used for building connect image used withing STs for runs where already existing images are used (releases)
     - name: Set CONNECT_BUILD_REGISTRY
       shell: bash
-      run: |
+      # Exporting the registry address to the calling job is the purpose of this step;
+      # the value comes from the runner or cluster, not from user input
+      run: | # zizmor: ignore[github-env]
         echo "CONNECT_BUILD_REGISTRY=$(kubectl get service registry -n kube-system -o=jsonpath='{.spec.clusterIP}'):80" >> $GITHUB_ENV
 
     - name: DEBUG - check running containers
