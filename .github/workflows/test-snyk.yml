@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,6 +17,9 @@ concurrency:
 jobs:
   test-snyk-maven-scan:
     name: Test Snyk Maven Scan
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -91,6 +92,9 @@ jobs:
   # To avoid additional image build, the scan check will wait until integration workflow store the artifacts
   wait-for-container-artifact:
     name: Wait for Container Artifact
+    permissions:
+      contents: read
+      actions: read            # find the build run and its artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
@@ -172,6 +176,10 @@ jobs:
   test-snyk-container-scan-operators:
     name: Test Snyk Container Scan (${{ matrix.image }})
     needs: wait-for-container-artifact
+    permissions:
+      contents: read
+      actions: read            # download artifact from another run
+      security-events: write   # upload SARIF
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -227,6 +235,10 @@ jobs:
   test-snyk-container-scan-drain-cleaner:
     name: Test Snyk Container Scan (drain-cleaner)
     needs: wait-for-container-artifact
+    permissions:
+      contents: read
+      actions: read            # download artifact from another run
+      security-events: write   # upload SARIF
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
