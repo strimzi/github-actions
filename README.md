@@ -196,9 +196,9 @@ In case we do update `push-container` or `release` flows in respective repositor
 The result will be shown only in tests within `github-actions` repository, because it tests flow for all parts of build process.
 To mitigate this, we have to run the same integration tests we have in this repository also in other repositories, just with different configurations.
 
-The main difference is in `githubActionsRef` parameter.
-This parameter says which branch of `github-actions` repo will be used for running the tests which should align with branch or version used in build/release workflows.
-So for example in case we use version `1.0.0` in build workflow, we should keep the same in the tests to ensure that current actions will work with new changes.
+The reusable workflow automatically checks out the actions from the same commit of `github-actions` repo as the one referenced in `uses:` (via `job.workflow_sha`).
+That means bumping the version of the reusable workflow (e.g., by Dependabot/Renovate) is enough to keep the tested actions aligned with the version used in build/release workflows.
+The optional `githubActionsRef` parameter overrides this ref. Callers normally should not set it, use it only when you explicitly need to test a different ref of the actions.
 
 The following code snippet shows the workflow for Bridge repository:
 
@@ -238,7 +238,6 @@ jobs:
       releaseVersion: "6.6.6"
       imagesLocation: "kafka-bridge-amd64.tar.gz"
       clusterOperatorBuild: false
-      githubActionsRef: "1.0.0"
     secrets: inherit
 ```
 
