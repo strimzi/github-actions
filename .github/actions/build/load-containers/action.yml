@@ -41,7 +41,7 @@ runs:
       shell: bash
       if: ${{ contains(inputs.registry, 'minikube') }}
       run: |
-        eval $(minikube docker-env)
+        eval "$(minikube docker-env)"
         make docker_load docker_e2e docker_delete_archive
       env:
         DOCKER_ARCHITECTURE: ${{ inputs.architecture }}
