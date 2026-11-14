@@ -9,6 +9,8 @@ if [ -n "$CHANGED_FILES" ] || [ -n "$UNTRACKED_FILES" ] ; then
     if [ -n "$CHANGED_FILES" ] ; then
         echo "ERROR: Uncommitted changes in tracked files:"
         echo "$CHANGED_FILES"
+        echo "Diff:"
+        git --no-pager diff -- ':!.github' ':!github-actions'
     fi
 
     if [ -n "$UNTRACKED_FILES" ] ; then
