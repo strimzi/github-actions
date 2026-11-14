@@ -84,6 +84,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,6 +92,7 @@ jobs:
           repository: strimzi/github-actions
           ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
+          persist-credentials: false
 
       - name: Setup actions for testing
         run: |
@@ -144,14 +146,16 @@ jobs:
 
       - name: Verify binaries artifact was created
         run: |
-          if [ ! -f "binaries-${{ inputs.artifactSuffix }}.tar" ]; then
+          if [ ! -f "binaries-${INPUTS_ARTIFACTSUFFIX}.tar" ]; then
             echo "❌ Binaries artifact not created"
             exit 1
           fi
 
           echo "Binaries artifact contents:"
-          tar -tf binaries-${{ inputs.artifactSuffix }}.tar
+          tar -tf "binaries-${INPUTS_ARTIFACTSUFFIX}.tar"
           echo "✓ Binaries artifact created successfully"
+        env:
+          INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
 
       - name: Verify test results exist
         if: ${{ inputs.checkTests == true }}
@@ -176,6 +180,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -183,6 +188,7 @@ jobs:
           repository: strimzi/github-actions
           ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
+          persist-credentials: false
 
       - name: Setup Nexus
         run: github-actions/.github/tests/setup-nexus.sh
@@ -234,7 +240,9 @@ jobs:
       - name: Set SNAPSHOT version for testing
         shell: bash
         run: |
-          mvn versions:set -DnewVersion=${{ inputs.releaseVersion }}-SNAPSHOT -DgenerateBackupPoms=false
+          mvn versions:set -DnewVersion="${INPUTS_RELEASEVERSION}-SNAPSHOT" -DgenerateBackupPoms=false
+        env:
+          INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
 
       - name: Deploy to local Maven repository using deploy-java action
         uses: ./.github/actions/build/deploy-java
@@ -257,8 +265,8 @@ jobs:
           while [ $ELAPSED -lt $TIMEOUT ]; do
               echo "Checking for artifacts... (${ELAPSED}s/${TIMEOUT}s)"
               
-              SEARCH_RESULT=$(curl -s -u admin:${{ env.NEXUS_PASSWORD }} \
-                  "http://localhost:8081/service/rest/v1/search?repository=maven-snapshots&name=${{ inputs.nexusCheck }}" 2>/dev/null)
+              SEARCH_RESULT=$(curl -s -u "admin:${NEXUS_PASSWORD}" \
+                  "http://localhost:8081/service/rest/v1/search?repository=maven-snapshots&name=${INPUTS_NEXUSCHECK}" 2>/dev/null)
               
               ARTIFACT_COUNT=$(echo "$SEARCH_RESULT" | jq -r '.items | length' 2>/dev/null || echo "0")
               
@@ -278,6 +286,8 @@ jobs:
           echo "Last search result:"
           echo "$SEARCH_RESULT" | jq '.' || echo "No valid response"
           exit 1
+        env:
+          INPUTS_NEXUSCHECK: ${{ inputs.nexusCheck }}
 
   test-build-containers:
     name: Build Containers
@@ -292,6 +302,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -299,6 +310,7 @@ jobs:
           repository: strimzi/github-actions
           ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
+          persist-credentials: false
 
       - name: Setup actions for testing
         run: |
@@ -335,6 +347,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -342,6 +355,7 @@ jobs:
           repository: strimzi/github-actions
           ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
+          persist-credentials: false
 
       - name: Setup actions for testing
         run: |
@@ -377,7 +391,7 @@ jobs:
       - name: Verify images discovery output
         if: ${{ github.event_name != 'pull_request' }}
         run: |
-          IMAGES='${{ steps.push.outputs.images }}'
+          IMAGES="${STEPS_PUSH_OUTPUTS_IMAGES}"
           COUNT=$(echo "$IMAGES" | jq 'length')
           if [ "$COUNT" -eq 0 ]; then
             echo "❌ No images discovered for attestation"
@@ -385,6 +399,8 @@ jobs:
           fi
           echo "✓ Discovered $COUNT image(s) for attestation:"
           echo "$IMAGES" | jq '.'
+        env:
+          STEPS_PUSH_OUTPUTS_IMAGES: ${{ steps.push.outputs.images }}
 
   test-release-artifacts:
     name: Release Artifacts
@@ -400,6 +416,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -407,6 +424,7 @@ jobs:
           repository: strimzi/github-actions
           ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
+          persist-credentials: false
 
       - name: Setup actions for testing
         run: |
@@ -439,7 +457,7 @@ jobs:
 
       - name: Verify release outputs
         run: |
-          TARBALL="release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+          TARBALL="release-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_RELEASEVERSION}.tar"
 
           if [ ! -f "$TARBALL" ]; then
             echo "❌ Release tarball not found: $TARBALL"
@@ -454,12 +472,15 @@ jobs:
           echo "Release tarball contents:"
           tar -tf "$TARBALL"
           echo "✓ Release artifacts created successfully"
+        env:
+          INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
+          INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
 
       # This check is currently only for Operators repo as yamls were missing in release tar ball
       - name: Verify YAML release artifacts in tarball
         if: ${{ inputs.clusterOperatorBuild == true }}
         run: |
-          TARBALL="release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+          TARBALL="release-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_RELEASEVERSION}.tar"
 
           YAML_COUNT=$(tar -tf "$TARBALL" | grep -c '\.yaml$' || true)
           if [ "$YAML_COUNT" -eq 0 ]; then
@@ -471,6 +492,9 @@ jobs:
 
           echo "Found $YAML_COUNT YAML file(s) in release tarball:"
           tar -tf "$TARBALL" | grep '\.yaml$'
+        env:
+          INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
+          INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
 
   test-publish-helm:
     name: Publish Helm Charts
@@ -486,6 +510,7 @@ jobs:
         with:
           repository: ${{ inputs.repo }}
           ref: ${{ inputs.ref }}
+          persist-credentials: false
 
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -493,6 +518,7 @@ jobs:
           repository: strimzi/github-actions
           ref: ${{ inputs.githubActionsRef || github.sha }}
           path: github-actions
+          persist-credentials: false
 
       - name: Setup actions for testing
         run: |

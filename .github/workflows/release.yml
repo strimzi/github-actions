@@ -24,7 +24,7 @@ jobs:
       - name: Validate branch
         id: branch
         run: |
-          BRANCH="${{ github.ref_name }}"
+          BRANCH="${GITHUB_REF_NAME}"
           
           echo "Validating branch: ${BRANCH}"
           if [[ ! "$BRANCH" =~ ^release-([0-9]+)\.x$ ]]; then
@@ -33,8 +33,9 @@ jobs:
           fi
           echo "major=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
 
+      # Credentials are kept because this job pushes release tags; it uploads no artifacts
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
         with:
           fetch-depth: 0
 
@@ -42,9 +43,10 @@ jobs:
         id: version
         env:
           MAJOR: ${{ steps.branch.outputs.major }}
+          INPUTS_VERSION: ${{ inputs.version }}
         run: |
-          if [[ -n "${{ inputs.version }}" ]]; then
-            VERSION="${{ inputs.version }}"
+          if [[ -n "${INPUTS_VERSION}" ]]; then
+            VERSION="${INPUTS_VERSION}"
             if [[ ! "$VERSION" =~ ^${MAJOR}\.[0-9]+$ ]]; then
               echo "::error::Version $VERSION does not match branch major version $MAJOR"
               exit 1
@@ -86,6 +88,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
           MAJOR: ${{ steps.branch.outputs.major }}
+          INPUTS_DESCRIPTION: ${{ inputs.description }}
         run: |
           PREV_TAG=$(git tag -l "v${MAJOR}.*" --sort=-v:refname | grep -v "^${TAG}$" | head -n1)
 
@@ -96,7 +99,7 @@ jobs:
           AUTO_NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
             "${API_ARGS[@]}" --jq '.body')
 
-          DESCRIPTION="${{ inputs.description }}"
+          DESCRIPTION="${INPUTS_DESCRIPTION}"
           if [[ -n "$DESCRIPTION" ]]; then
             printf '%s\n\n---\n\n%s' "$DESCRIPTION" "$AUTO_NOTES" > release-notes.md
           else

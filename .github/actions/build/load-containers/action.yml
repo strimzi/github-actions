@@ -30,11 +30,17 @@ runs:
   steps:
     - name: "Untar ${{ inputs.architecture }} containers"
       shell: bash
-      run: tar -xvf containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar
+      run: tar -xvf containers-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_ARCHITECTURE}.tar
+      env:
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: "Delete the original archive with ${{ inputs.architecture }} containers"
       shell: bash
-      run: rm containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar
+      run: rm containers-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_ARCHITECTURE}.tar
+      env:
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     # This is for loading images into minikube registry
     - name: Load & push images into minikube registry

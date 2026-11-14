@@ -17,6 +17,7 @@ runs:
     - name: Install shellcheck
       shell: bash
       run: |
-        ${{ github.action_path }}/setup_shellcheck.sh "${{ inputs.architecture }}"
+        ${{ github.action_path }}/setup_shellcheck.sh "${INPUTS_ARCHITECTURE}"
       env:
         VERSION: ${{ inputs.version }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}

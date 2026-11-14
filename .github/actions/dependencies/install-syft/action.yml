@@ -17,6 +17,7 @@ runs:
     - name: Install Syft
       shell: bash
       run: |
-        ${{ github.action_path }}/install_syft.sh "${{ inputs.architecture }}"
+        ${{ github.action_path }}/install_syft.sh "${INPUTS_ARCHITECTURE}"
       env:
         VERSION: ${{ inputs.version }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}

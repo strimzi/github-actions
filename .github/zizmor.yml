@@ -1,0 +1,4 @@
+rules:
+  # Our tests check out and call this repository's own actions and workflows on purpose
+  self-repository:
+    disable: true

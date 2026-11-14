@@ -12,8 +12,6 @@ on:
 # Declare default permissions as read only
 permissions:
   contents: read
-  id-token: write       # Required for OIDC keyless signing
-  attestations: write   # Required for actions/attest provenance
 
 # Cancel previous builds on the same branch/PR
 concurrency:
@@ -23,6 +21,10 @@ concurrency:
 jobs:
   test-integration:
     name: Integration Test - ${{ matrix.project.repo }}
+    permissions:
+      contents: read
+      id-token: write       # Required for OIDC keyless signing
+      attestations: write   # Required for actions/attest provenance
     strategy:
       fail-fast: false
       matrix:
@@ -239,7 +241,6 @@ jobs:
       clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild || false }}
       skipTests: ${{ matrix.project.skipTests }}
       checkTests: ${{ matrix.project.checkTests }}
-    secrets: inherit
 
   test-oci-artifact:
     name: Test push and pull OCI artifact
@@ -247,6 +248,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup local registry
         run: .github/tests/setup-registry.sh

@@ -27,6 +27,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Checkout strimzi/drain-cleaner
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,6 +35,7 @@ jobs:
           repository: strimzi/drain-cleaner
           ref: 1.6.1
           path: drain-cleaner
+          persist-credentials: false
 
       - name: Copy drain-cleaner project to workspace root
         run: rsync -a --exclude='.git' --exclude='.github' drain-cleaner/ ./
@@ -192,6 +194,8 @@ jobs:
     steps:
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Docker
         uses: ./.github/actions/dependencies/install-docker
@@ -245,6 +249,8 @@ jobs:
     steps:
       - name: Checkout github-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Docker
         uses: ./.github/actions/dependencies/install-docker

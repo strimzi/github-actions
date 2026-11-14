@@ -60,7 +60,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-workdir
-          tar -xf release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar -C release-workdir
+          tar -xf "release-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_RELEASEVERSION}.tar" -C release-workdir
+        env:
+          INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
+          INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
 
       - name: Download SBOMs artifact
         if: ${{ inputs.sbomsArtifact != '' }}
@@ -77,9 +80,9 @@ jobs:
         id: find-archives
         shell: bash
         run: |
-          FILES=$(find release-workdir -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
-                                                   -iname "*${{ inputs.releaseVersion }}*.zip" -o \
-                                                   -iname "*${{ inputs.releaseVersion }}*.tgz" \))
+          FILES=$(find release-workdir -type f \( -iname "*${INPUTS_RELEASEVERSION}*.tar.gz" -o \
+                                                   -iname "*${INPUTS_RELEASEVERSION}*.zip" -o \
+                                                   -iname "*${INPUTS_RELEASEVERSION}*.tgz" \))
           if [ -n "$FILES" ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
             {
@@ -92,6 +95,8 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
             echo "No release archives found for attestation"
           fi
+        env:
+          INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
 
       - name: Attest release archives
         if: ${{ steps.find-archives.outputs.found == 'true' }}
@@ -104,14 +109,14 @@ jobs:
         if: ${{ steps.find-archives.outputs.found == 'true' }}
         shell: bash
         run: |
-          cp "${{ steps.attest.outputs.bundle-path }}" "release-workdir/release-${{ inputs.releaseVersion }}.intoto.jsonl"
-          rm release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar
-          TARBALL="../release-${{ inputs.artifactSuffix }}-${{ inputs.releaseVersion }}.tar"
+          cp "${STEPS_ATTEST_OUTPUTS_BUNDLE_PATH}" "release-workdir/release-${INPUTS_RELEASEVERSION}.intoto.jsonl"
+          rm "release-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_RELEASEVERSION}.tar"
+          TARBALL="../release-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_RELEASEVERSION}.tar"
           cd release-workdir
-          find . -type f \( -iname "*${{ inputs.releaseVersion }}*.tar.gz" -o \
-                            -iname "*${{ inputs.releaseVersion }}*.zip" -o \
-                            -iname "*${{ inputs.releaseVersion }}*.tgz" -o \
-                            -iname "*${{ inputs.releaseVersion }}*.yaml" -o \
+          find . -type f \( -iname "*${INPUTS_RELEASEVERSION}*.tar.gz" -o \
+                            -iname "*${INPUTS_RELEASEVERSION}*.zip" -o \
+                            -iname "*${INPUTS_RELEASEVERSION}*.tgz" -o \
+                            -iname "*${INPUTS_RELEASEVERSION}*.yaml" -o \
                             -iname "*.intoto.jsonl" -o \
                             -name "sbom.tar.gz" \) \
             -exec tar -rvf "${TARBALL}" {} \;
@@ -120,6 +125,10 @@ jobs:
             echo "::error::Attestation bundle missing from rebuilt release tar"
             exit 1
           fi
+        env:
+          STEPS_ATTEST_OUTPUTS_BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+          INPUTS_RELEASEVERSION: ${{ inputs.releaseVersion }}
+          INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
 
       - name: Re-upload release artifact with attestation
         if: ${{ steps.find-archives.outputs.found == 'true' }}
@@ -140,9 +149,11 @@ jobs:
         id: parse
         shell: bash
         run: |
-          IMAGE="${{ inputs.helmChartImage }}"
+          IMAGE="${INPUTS_HELMCHARTIMAGE}"
           echo "subject-name=${IMAGE%%@*}" >> "$GITHUB_OUTPUT"
           echo "subject-digest=${IMAGE##*@}" >> "$GITHUB_OUTPUT"
+        env:
+          INPUTS_HELMCHARTIMAGE: ${{ inputs.helmChartImage }}
 
       - name: Attest Helm chart
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2

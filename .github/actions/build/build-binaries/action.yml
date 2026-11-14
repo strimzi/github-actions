@@ -115,9 +115,11 @@ runs:
           PATHS_TO_ARCHIVE="$PATHS_TO_ARCHIVE ./docker-images/artifacts/binaries"
         fi
 
-        tar -cvpf binaries-${{ inputs.artifactSuffix }}.tar \
+        tar -cvpf binaries-${INPUTS_ARTIFACTSUFFIX}.tar \
           --exclude='**/surefire-reports' \
           $PATHS_TO_ARCHIVE
+      env:
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
 
     - name: Upload artifact
       if: ${{ inputs.mainJavaBuild == 'true' }}

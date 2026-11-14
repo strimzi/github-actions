@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run install-docker action
         uses: ./.github/actions/dependencies/install-docker
@@ -54,6 +56,8 @@ jobs:
         - 'v3.16.0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run install-helm action
         uses: ./.github/actions/dependencies/install-helm
@@ -84,6 +88,8 @@ jobs:
           - '0.10.0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run install-shellcheck action
         uses: ./.github/actions/dependencies/install-shellcheck
@@ -115,6 +121,8 @@ jobs:
           - '1.20.0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run install-syft action
         uses: ./.github/actions/dependencies/install-syft
@@ -138,6 +146,8 @@ jobs:
           - '1.2.3'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run install-oras action
         uses: ./.github/actions/dependencies/install-oras
@@ -162,6 +172,8 @@ jobs:
           - 'v4.52.2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run install-yq action
         uses: ./.github/actions/dependencies/install-yq
@@ -186,6 +198,8 @@ jobs:
         mavenVersion: ['3.9.9', '3.8.8']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run setup-java action
         uses: ./.github/actions/dependencies/setup-java
@@ -231,6 +245,8 @@ jobs:
             expectedK8sVersion: "1.37"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run setup-kind action
         uses: ./.github/actions/dependencies/setup-kind
@@ -327,6 +343,8 @@ jobs:
           - 'v1.37.0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run setup-minikube action
         uses: ./.github/actions/dependencies/setup-minikube

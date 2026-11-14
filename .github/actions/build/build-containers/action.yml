@@ -48,7 +48,9 @@ runs:
 
     - name: "Untar binaries archive"
       shell: bash
-      run: tar -xvf binaries-${{ inputs.artifactSuffix }}.tar
+      run: tar -xvf binaries-${INPUTS_ARTIFACTSUFFIX}.tar
+      env:
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
 
     - name: Build images
       shell: bash
@@ -64,7 +66,11 @@ runs:
 
     - name: Create tarball with images
       shell: bash
-      run: "tar -cvpf containers-${{ inputs.artifactSuffix }}-${{ inputs.architecture }}.tar ${{ inputs.imagesLocation }}"
+      run: "tar -cvpf containers-${INPUTS_ARTIFACTSUFFIX}-${INPUTS_ARCHITECTURE}.tar ${INPUTS_IMAGESLOCATION}"
+      env:
+        INPUTS_ARTIFACTSUFFIX: ${{ inputs.artifactSuffix }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
+        INPUTS_IMAGESLOCATION: ${{ inputs.imagesLocation }}
 
     - name: Upload containers artifact
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

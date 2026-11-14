@@ -41,14 +41,19 @@ runs:
       if: steps.cache-registry.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        docker load -i /tmp/registry-image-${{ inputs.architecture }}.tar
+        docker load -i /tmp/registry-image-${INPUTS_ARCHITECTURE}.tar
+      env:
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: Pull and save registry Docker image if cache miss
       if: steps.cache-registry.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        docker pull ${{ inputs.registry }}
-        docker save ${{ inputs.registry }} -o /tmp/registry-image-${{ inputs.architecture }}.tar
+        docker pull ${INPUTS_REGISTRY}
+        docker save ${INPUTS_REGISTRY} -o /tmp/registry-image-${INPUTS_ARCHITECTURE}.tar
+      env:
+        INPUTS_REGISTRY: ${{ inputs.registry }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: Cache cloud-provider-kind container image
       id: cache-cloud-provider-kind
@@ -61,35 +66,45 @@ runs:
       if: steps.cache-cloud-provider-kind.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        docker load -i /tmp/cloud-provider-kind-image-${{ inputs.architecture }}.tar
+        docker load -i /tmp/cloud-provider-kind-image-${INPUTS_ARCHITECTURE}.tar
+      env:
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: Pull and save cloud-provider-kind container image if cache miss
       if: steps.cache-cloud-provider-kind.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        docker pull registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${{ inputs.cloudProviderVersion }}
-        docker save registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${{ inputs.cloudProviderVersion }} -o /tmp/cloud-provider-kind-image-${{ inputs.architecture }}.tar
+        docker pull registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${INPUTS_CLOUDPROVIDERVERSION}
+        docker save registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v${INPUTS_CLOUDPROVIDERVERSION} -o /tmp/cloud-provider-kind-image-${INPUTS_ARCHITECTURE}.tar
+      env:
+        INPUTS_CLOUDPROVIDERVERSION: ${{ inputs.cloudProviderVersion }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: Setup Kind
       shell: bash
       run: |
-        ${{ github.action_path }}/setup-kind.sh "${{ inputs.architecture }}"
+        ${{ github.action_path }}/setup-kind.sh "${INPUTS_ARCHITECTURE}"
       env:
         REGISTRY_IMAGE: ${{ inputs.registry }}
         CONTROL_NODES: ${{ inputs.controlNodes }}
         WORKER_NODES: ${{ inputs.workerNodes }}
         KIND_CLOUD_PROVIDER_VERSION: v${{ inputs.cloudProviderVersion }}
         KIND_VERSION: v${{ inputs.kindVersion }}
+        INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
 
     - name: Set DOCKER_REGISTRY
       shell: bash
-      run: |
+      # Exporting the registry address to the calling job is the purpose of this step;
+      # the value comes from the runner or cluster, not from user input
+      run: | # zizmor: ignore[github-env]
         echo "DOCKER_REGISTRY=$(hostname --all-ip-addresses | awk '{ print $1 }'):5001" >> $GITHUB_ENV
 
     # This is used for building connect image used withing STs for runs where already existing images are used (releases)
     - name: Set CONNECT_BUILD_REGISTRY
       shell: bash
-      run: |
+      # Exporting the registry address to the calling job is the purpose of this step;
+      # the value comes from the runner or cluster, not from user input
+      run: | # zizmor: ignore[github-env]
         echo "CONNECT_BUILD_REGISTRY=$(hostname --all-ip-addresses | awk '{ print $1 }'):5001" >> $GITHUB_ENV
 
     - name: Print registry values
