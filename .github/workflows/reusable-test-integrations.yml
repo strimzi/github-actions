@@ -62,7 +62,7 @@ on:
         type: boolean
         default: true
       githubActionsRef:
-        description: "Ref of strimzi/github-actions to use (tag, branch, or SHA). Leave empty for local calls within github-actions repo."
+        description: "Optional override of the strimzi/github-actions ref (tag, branch, or SHA). Defaults to the same commit as this reusable workflow (job.workflow_sha)."
         required: false
         type: string
         default: ""
@@ -100,7 +100,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strimzi/github-actions
-          ref: ${{ inputs.githubActionsRef || github.sha }}
+          ref: ${{ inputs.githubActionsRef || job.workflow_sha }}
           path: github-actions
           persist-credentials: false
 
@@ -199,7 +199,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strimzi/github-actions
-          ref: ${{ inputs.githubActionsRef || github.sha }}
+          ref: ${{ inputs.githubActionsRef || job.workflow_sha }}
           path: github-actions
           persist-credentials: false
 
@@ -321,7 +321,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strimzi/github-actions
-          ref: ${{ inputs.githubActionsRef || github.sha }}
+          ref: ${{ inputs.githubActionsRef || job.workflow_sha }}
           path: github-actions
           persist-credentials: false
 
@@ -366,7 +366,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strimzi/github-actions
-          ref: ${{ inputs.githubActionsRef || github.sha }}
+          ref: ${{ inputs.githubActionsRef || job.workflow_sha }}
           path: github-actions
           persist-credentials: false
 
@@ -435,7 +435,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strimzi/github-actions
-          ref: ${{ inputs.githubActionsRef || github.sha }}
+          ref: ${{ inputs.githubActionsRef || job.workflow_sha }}
           path: github-actions
           persist-credentials: false
 
@@ -532,7 +532,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strimzi/github-actions
-          ref: ${{ inputs.githubActionsRef || github.sha }}
+          ref: ${{ inputs.githubActionsRef || job.workflow_sha }}
           path: github-actions
           persist-credentials: false
 
