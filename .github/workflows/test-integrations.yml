@@ -39,6 +39,9 @@ jobs:
             nexusCheck: "strimzi"
             javaVersion: "21"
             helmChartName: "strimzi-kafka-operator-helm-3-chart"
+            # Generated files and Helm unit tests do not match Helm 4 output yet
+            helmVersion: "v3.16.0"
+            helmUnitTestVersion: "v1.0.3"
             releaseVersion: "6.6.6"
             imagesLocation: "./docker-images/container-archives"
             clusterOperatorBuild: true
@@ -62,7 +65,7 @@ jobs:
 
           # Access Operator - Full pipeline with containers
           - repo: "strimzi/kafka-access-operator"
-            ref: "release-0.3.x"
+            ref: "main"
             artifactSuffix: "access-operator"
             architecture: "amd64"
             buildContainers: true
@@ -70,6 +73,9 @@ jobs:
             nexusCheck: "kafka-access-operator"
             javaVersion: "21"
             helmChartName: "strimzi-access-operator-helm-3-chart"
+            # Generated files and Helm unit tests do not match Helm 4 output yet
+            helmVersion: "v3.16.0"
+            helmUnitTestVersion: "v1.0.3"
             releaseVersion: "6.6.6"
             imagesLocation: "access-operator-container-amd64.tar.gz"
             skipTests: false
@@ -241,6 +247,8 @@ jobs:
       clusterOperatorBuild: ${{ matrix.project.clusterOperatorBuild || false }}
       skipTests: ${{ matrix.project.skipTests }}
       checkTests: ${{ matrix.project.checkTests }}
+      helmVersion: ${{ matrix.project.helmVersion }}
+      helmUnitTestVersion: ${{ matrix.project.helmUnitTestVersion }}
 
   test-oci-artifact:
     name: Test push and pull OCI artifact

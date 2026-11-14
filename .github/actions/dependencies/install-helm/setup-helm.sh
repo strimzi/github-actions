@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -xe
 
-TEST_HELM3_VERSION=${TEST_HELM3_VERSION:-'v3.20.0'}
-TEST_HELM_UNITTEST_VERSION=${TEST_HELM_UNITTEST_VERSION:-'v1.0.3'}
+TEST_HELM_VERSION=${TEST_HELM_VERSION:-'v4.3.2'}
+TEST_HELM_UNITTEST_VERSION=${TEST_HELM_UNITTEST_VERSION:-'v1.2.1'}
 
-function install_helm3 {
+function install_helm {
     # Remove any pre-installed helm binary to avoid PATH conflicts
     # (e.g., GitHub runners have helm in /usr/local/bin which takes precedence over /usr/bin)
     if [ -f /usr/local/bin/helm ]; then
@@ -18,8 +18,8 @@ function install_helm3 {
     sed -i 's#/usr/local/bin#/usr/bin#g' get_helm.sh
     chmod 700 get_helm.sh
 
-    echo "Installing helm 3..."
-    sudo ./get_helm.sh --version "${TEST_HELM3_VERSION}"
+    echo "Installing helm ${TEST_HELM_VERSION}..."
+    sudo ./get_helm.sh --version "${TEST_HELM_VERSION}"
     rm -f get_helm.sh
 
     echo "Verifying the installation of helm binary..."
@@ -35,7 +35,12 @@ function install_helm3 {
 
 function install_helm_unittest {
     echo "Installing helm unittest plugin ..."
-    helm plugin install --version $TEST_HELM_UNITTEST_VERSION https://github.com/helm-unittest/helm-unittest.git
+    local verify_flag=()
+    # Helm 4 verifies plugin signatures by default, which a git source does not support; Helm 3 has no such flag
+    if [[ "$(helm version --template '{{.Version}}')" != v3.* ]]; then
+        verify_flag=(--verify=false)
+    fi
+    helm plugin install "${verify_flag[@]}" --version "$TEST_HELM_UNITTEST_VERSION" https://github.com/helm-unittest/helm-unittest.git
 
     echo "Verifying the installation of helm unittest plugin ..."
     # run a proper helm command instead of, for example, "which helm", to verify that we can call the binary
@@ -48,5 +53,5 @@ function install_helm_unittest {
     fi
 }
 
-install_helm3
+install_helm
 install_helm_unittest

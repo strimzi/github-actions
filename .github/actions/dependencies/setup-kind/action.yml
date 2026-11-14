@@ -9,11 +9,11 @@ inputs:
   kindVersion:
     description: "Kind version"
     required: false
-    default: 0.32.0
+    default: 0.33.0
   registry:
     description: "Image used for Minikube Registry"
     required: false
-    default: mirror.gcr.io/registry:2.8.3
+    default: mirror.gcr.io/registry:3.1.2
   controlNodes:
     description: "Count of Control Plane nodes"
     required: false
@@ -25,7 +25,7 @@ inputs:
   cloudProviderVersion:
     description: "Version of kind cloud-provider image"
     required: false
-    default: 0.11.0
+    default: 0.12.0
 
 runs:
   using: "composite"

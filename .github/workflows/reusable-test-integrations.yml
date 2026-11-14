@@ -66,6 +66,16 @@ on:
         required: false
         type: string
         default: ""
+      helmVersion:
+        description: "Helm version to install (e.g., 'v3.16.0'). Leave empty for the install-helm default."
+        required: false
+        type: string
+        default: ""
+      helmUnitTestVersion:
+        description: "helm-unittest version to install (e.g., 'v1.0.3' for Helm < 3.18). Leave empty for the install-helm default."
+        required: false
+        type: string
+        default: ""
 
 # Declare default permissions as read only
 permissions:
@@ -112,6 +122,9 @@ jobs:
 
       - name: Install Helm
         uses: ./.github/actions/dependencies/install-helm
+        with:
+          helmVersion: ${{ inputs.helmVersion }}
+          helmUnitTestVersion: ${{ inputs.helmUnitTestVersion }}
 
       # Strimzi Operator build pulls the Sova snapshot from GHCR
       - name: Install ORAS
@@ -441,6 +454,9 @@ jobs:
 
       - name: Install Helm
         uses: ./.github/actions/dependencies/install-helm
+        with:
+          helmVersion: ${{ inputs.helmVersion }}
+          helmUnitTestVersion: ${{ inputs.helmUnitTestVersion }}
 
       - name: Install AsciiDoctor
         uses: ./.github/actions/dependencies/install-ascii-doctor
@@ -534,6 +550,9 @@ jobs:
 
       - name: Install Helm
         uses: ./.github/actions/dependencies/install-helm
+        with:
+          helmVersion: ${{ inputs.helmVersion }}
+          helmUnitTestVersion: ${{ inputs.helmUnitTestVersion }}
 
       - name: Publish Helm charts using publish-helm action
         id: publish

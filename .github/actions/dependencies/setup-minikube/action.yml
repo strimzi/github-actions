@@ -5,11 +5,11 @@ inputs:
   kubeVersion:
     description: "Kubernetes CLI version to install"
     required: false
-    default: "v1.38.0"
+    default: "v1.37.2"
   minikubeVersion:
     description: "Minikube version to install"
     required: false
-    default: "v1.38.0"
+    default: "v1.37.2"
   architecture:
     description: "Architecture"
     required: false
@@ -17,7 +17,7 @@ inputs:
   registry:
     description: "Image used for Minikube Registry"
     required: false
-    default: mirror.gcr.io/registry:2.8.3
+    default: mirror.gcr.io/registry:3.1.2
 
 runs:
   using: "composite"
