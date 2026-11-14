@@ -12,3 +12,8 @@ self-hosted-runner:
     - cncf-ubuntu-2-8-arm
     - cncf-ubuntu-4-16-arm
     - cncf-ubuntu-8-32-arm
+paths:
+  .github/workflows/reusable-test-integrations.yml:
+    ignore:
+      # job.workflow_sha is supported by GitHub (runner >= v2.334.0) but not yet known to actionlint
+      - 'property "workflow_sha" is not defined in object type'
