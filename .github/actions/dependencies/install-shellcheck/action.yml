@@ -21,3 +21,4 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         INPUTS_ARCHITECTURE: ${{ inputs.architecture }}
+        GITHUB_TOKEN: ${{ github.token }}   # avoids API rate limits when looking up the asset digest

@@ -25,7 +25,9 @@ function install_kubectl {
     if [ "${TEST_KUBECTL_VERSION:-latest}" = "latest" ]; then
         TEST_KUBECTL_VERSION=$(curl -fsSL --retry 3 https://dl.k8s.io/release/stable.txt)
     fi
-    curl -fL --retry 3 -o kubectl "https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+    KUBECTL_URL="https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+    curl -fL --retry 3 -o kubectl "${KUBECTL_URL}"
+    echo "$(curl -fsSL --retry 3 "${KUBECTL_URL}.sha256")  kubectl" | sha256sum -c -
     chmod +x kubectl
     sudo cp kubectl /usr/local/bin
     kubectl version --client
@@ -54,6 +56,7 @@ if [ "$TEST_CLUSTER" = "minikube" ]; then
     fi
 
     curl -fL --retry 3 -o minikube "${TEST_MINIKUBE_URL}"
+    echo "$(curl -fsSL --retry 3 "${TEST_MINIKUBE_URL}.sha256")  minikube" | sha256sum -c -
     chmod +x minikube
     sudo cp minikube /usr/local/bin
     minikube version

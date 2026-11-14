@@ -45,7 +45,9 @@ function install_kubectl {
     if [ "${TEST_KUBECTL_VERSION:-latest}" = "latest" ]; then
         TEST_KUBECTL_VERSION=$(curl -fsSL --retry 3 https://dl.k8s.io/release/stable.txt)
     fi
-    curl -fL --retry 3 -o kubectl "https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+    KUBECTL_URL="https://dl.k8s.io/release/${TEST_KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+    curl -fL --retry 3 -o kubectl "${KUBECTL_URL}"
+    echo "$(curl -fsSL --retry 3 "${KUBECTL_URL}.sha256")  kubectl" | sha256sum -c -
     chmod +x kubectl
     sudo mv kubectl /usr/local/bin
     kubectl version --client
@@ -69,6 +71,7 @@ function install_kubernetes_provisioner {
     KIND_URL=https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-${ARCH}
 
     curl -fL --retry 3 -o kind "${KIND_URL}"
+    echo "$(curl -fsSL --retry 3 "${KIND_URL}.sha256sum" | awk '{ print $1 }')  kind" | sha256sum -c -
     chmod +x kind
 
     # Move the binary to a globally accessible location
