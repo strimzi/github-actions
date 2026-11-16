@@ -116,15 +116,25 @@ permissions:
 
 #### Verification
 
+The attestations are signed by `reusable-attest.yml` in this repository, not by the workflow of the project itself.
+Therefore, `--signer-repo strimzi/github-actions` is required, otherwise the verification fails with `verifying with issuer "sigstore.dev"`.
+Container images are attested per architecture, so use the architecture-specific tag (e.g. `<version>-amd64`) or its digest instead of the multi-architecture tag.
+
 ```bash
 # Release archives
-gh attestation verify <artifact-file> --repo strimzi/<project>
+gh attestation verify <artifact-file> --repo strimzi/<project> --signer-repo strimzi/github-actions
 
-# Container images
-gh attestation verify oci://quay.io/strimzi/<image>@<digest> --repo strimzi/<project>
+# Release archives using the attestation bundle attached to the GitHub release
+gh attestation verify <artifact-file> --bundle release-<version>.intoto.jsonl --repo strimzi/<project> --signer-repo strimzi/github-actions
+
+# Container images (provenance)
+gh attestation verify oci://quay.io/strimzi/<image>:<version>-amd64 --repo strimzi/<project> --signer-repo strimzi/github-actions
+
+# Container images (SBOM)
+gh attestation verify oci://quay.io/strimzi/<image>:<version>-amd64 --repo strimzi/<project> --signer-repo strimzi/github-actions --predicate-type https://spdx.dev/Document/v2.3
 
 # Helm charts
-gh attestation verify oci://quay.io/strimzi-helm/<chart>@<digest> --repo strimzi/<project>
+gh attestation verify oci://quay.io/strimzi-helm/<chart>:<version> --repo strimzi/<project> --signer-repo strimzi/github-actions
 ```
 
 ### Security Actions
