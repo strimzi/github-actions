@@ -20,6 +20,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/configs"
+    # Only bump Poetry itself; its transitive dependencies are pinned by hash and must stay
+    # within Poetry's constraints, so regenerate the file (see its header) when Poetry is bumped
+    allow:
+      - dependency-name: "poetry"
     schedule:
       interval: "weekly"
     cooldown:
